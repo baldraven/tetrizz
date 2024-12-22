@@ -5,6 +5,28 @@ class GameRoom {
         this.gameStates = new Map();
         this.playerRoles = new Map();
         this.activeGames = new Set();
+        this.pieceQueue = [];
+        this.pieceTypes = ['I', 'O', 'T', 'L', 'J', 'S', 'Z'];
+        this.initializePieceQueue();
+    }
+
+    initializePieceQueue() {
+        // Fill queue with 7 pieces
+        while (this.pieceQueue.length < 7) {
+            this.addNewPieceToQueue();
+        }
+    }
+
+    addNewPieceToQueue() {
+        const type = this.pieceTypes[Math.floor(Math.random() * this.pieceTypes.length)];
+        this.pieceQueue.push(type);
+    }
+
+    getNextPiece() {
+        const piece = this.pieceQueue.shift();
+        this.addNewPieceToQueue();
+        console.log('Current queue:', this.pieceQueue);  // Debug log
+        return piece;
     }
 
     addPlayer(socket) {

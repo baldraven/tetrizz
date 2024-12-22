@@ -33,4 +33,29 @@ export default class Player {
     }
     this.game.lockPiece(); // Instantly lock the piece
   }
+
+  handleInput(key) {
+    if (!this.game.currentPiece) return;
+
+    switch(key) {
+        case 'j':
+            this.move('left');
+            break;
+        case 'l':
+            this.move('right');
+            break;
+        case 'k':
+            this.move('down');
+            break;
+        case 'a':
+            this.rotate('counterclockwise');
+            break;
+        case 's':
+            this.rotate('clockwise');
+            break;
+        case 'q':
+            this.rotate('180');
+            break;
+    }
+  }
 }

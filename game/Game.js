@@ -8,42 +8,51 @@ export default class Game {
     this.score = 0;
     this.level = 0;
     this.isGameOver = false;
-    this.currentPiece = this.generatePiece();
+    this.pieceQueue = [];  // Initialize empty queue
+    this.currentPiece = null;  // Don't generate piece immediately
   }
 
   generatePiece() {
-    const types = Object.keys(SHAPES);
-    const type = types[Math.floor(Math.random() * types.length)];
+    if (!this.pieceQueue || this.pieceQueue.length === 0) {
+      console.log('Waiting for piece queue...');
+      return null;
+    }
+    const type = this.pieceQueue[0];
+    // Don't remove the piece here, wait for server confirmation
     return new Piece(SHAPES[type], type);
   }
 
+  // Add method to initialize the first piece
+  initializeFirstPiece() {
+    if (this.currentPiece === null && this.pieceQueue.length > 0) {
+      this.currentPiece = this.generatePiece();
+    }
+  }
+
+  updateQueue(newQueue) {
+    this.pieceQueue = newQueue;
+  }
+
   update() {
-    if (this.isGameOver) return;
+    if (this.isGameOver || !this.currentPiece) return;
 
     const newPosition = this.currentPiece.move('down');
     if (this.board.isCollision(this.currentPiece, newPosition)) {
-      this.board.placePiece(this.currentPiece);
-      const linesCleared = this.board.clearLines();
-      this.updateScore(linesCleared);
-      this.currentPiece = this.generatePiece();
-      
-      if (this.board.isCollision(this.currentPiece, this.currentPiece.position)) {
-        this.isGameOver = true;
-      }
+      this.lockPiece();
+      return true; // Indicate that piece was locked
     } else {
       this.currentPiece.position = newPosition;
+      return false;
     }
   }
 
   lockPiece() {
+    if (!this.currentPiece) return;
+    
     this.board.placePiece(this.currentPiece);
     const linesCleared = this.board.clearLines();
     this.updateScore(linesCleared);
-    this.currentPiece = this.generatePiece();
-    
-    if (this.board.isCollision(this.currentPiece, this.currentPiece.position)) {
-        this.isGameOver = true;
-    }
+    this.currentPiece = null;  // Set to null to trigger piece request
   }
 
   updateScore(linesCleared) {

@@ -1,6 +1,7 @@
 import Game from '../game/Game.js';
 import Player from '../game/Player.js';
-import { COLORS } from '../game/Constants.js';
+import { COLORS, SHAPES } from '../game/Constants.js';
+import Piece from '../game/Piece.js';
 
 class GameClient {
     constructor(leftCanvas, rightCanvas) {
@@ -21,26 +22,62 @@ class GameClient {
         this.moveInterval = 50; // Speed of auto-repeat
         this.heldKeys = new Set();
         
+        this.previewCanvas = document.createElement('canvas');
+        this.previewCanvas.width = 100;
+        this.previewCanvas.height = 400;
+        document.querySelector('.game-container').appendChild(this.previewCanvas);
+        this.previewCtx = this.previewCanvas.getContext('2d');
+        
         this.setupSocketEvents();
         this.setupEvents();
+
+        // Add error handling for socket connection
+        this.socket.on('connect', () => {
+            console.log('Connected to server');
+        });
+
+        this.socket.on('connect_error', (error) => {
+            console.error('Connection error:', error);
+        });
+
+        this.socket.on('roomFull', () => {
+            console.log('Room is full, cannot join');
+            // Optionally display message to user
+            alert('Game room is full. Please try again later.');
+        });
     }
 
     setupSocketEvents() {
         this.socket.on('playerAssigned', ({ playerId }) => {
+            console.log('Assigned as:', playerId);
             this.playerId = playerId;
-            // Setup canvases based on player role
+            
+            // Clear both canvases first
+            const leftCtx = this.leftCanvas.getContext('2d');
+            const rightCtx = this.rightCanvas.getContext('2d');
+            leftCtx.fillStyle = '#fff';
+            rightCtx.fillStyle = '#fff';
+            leftCtx.fillRect(0, 0, this.leftCanvas.width, this.leftCanvas.height);
+            rightCtx.fillRect(0, 0, this.rightCanvas.width, this.rightCanvas.height);
+
+            // Assign contexts based on player role
             if (this.playerId === 'player1') {
-                this.ctx = this.leftCanvas.getContext('2d');
-                this.opponentCtx = this.rightCanvas.getContext('2d');
+                this.ctx = leftCtx;
+                this.opponentCtx = rightCtx;
+                document.querySelector('.player-section:first-child h2').style.color = 'red';
             } else {
-                this.ctx = this.rightCanvas.getContext('2d');
-                this.opponentCtx = this.leftCanvas.getContext('2d');
+                this.ctx = rightCtx;
+                this.opponentCtx = leftCtx;
+                document.querySelector('.player-section:last-child h2').style.color = 'red';
             }
         });
 
-        this.socket.on('startGame', () => {
-            console.log('Game started!');
+        this.socket.on('startGame', ({ initialQueue }) => {
+            console.log('Game started with queue:', initialQueue);
             this.gameStarted = true;
+            this.game.pieceQueue = initialQueue;
+            this.game.initializeFirstPiece(); // Initialize the first piece
+            this.renderPreviewQueue();
             this.startGameLoop(); // Both players start their game loops
         });
 
@@ -48,6 +85,14 @@ class GameClient {
             if (data.playerId !== this.playerId) {
                 this.renderOpponentGame(data);
             }
+        });
+
+        this.socket.on('queueUpdate', ({ queue, nextPiece }) => {
+            this.game.pieceQueue = queue;
+            if (nextPiece && this.game.currentPiece === null) {
+                this.game.currentPiece = new Piece(SHAPES[nextPiece], nextPiece);
+            }
+            this.renderPreviewQueue();
         });
     }
 
@@ -68,33 +113,31 @@ class GameClient {
     }
 
     handleInput(key) {
+        if (!this.game.currentPiece || !this.gameStarted) return;
+        
+        let needsNewPiece = false;
+        
         switch(key) {
-            case 'j':
-                this.player.move('left');
-                break;
-            case 'l':
-                this.player.move('right');
-                break;
-            case 'k':
-                this.player.move('down');
-                break;
-            case 'a':
-                this.player.rotate('counterclockwise');
-                break;
-            case 's':
-                this.player.rotate('clockwise');
-                break;
-            case 'q':
-                this.player.rotate('180');
-                break;
             case 'c':
                 this.player.hardDrop();
+                needsNewPiece = true;
+                break;
+            default:
+                // Handle other inputs
+                this.player.handleInput(key);
                 break;
         }
+
         this.sendGameState();
+
+        if (needsNewPiece || this.game.currentPiece === null) {
+            this.socket.emit('requestPiece');
+        }
     }
 
     sendGameState() {
+        if (!this.game.currentPiece) return;
+
         const state = {
             board: this.game.board.grid,
             score: this.game.score,
@@ -102,7 +145,8 @@ class GameClient {
             playerId: this.playerId,
             currentPiece: {
                 shape: this.game.currentPiece.shape,
-                position: this.game.currentPiece.position
+                position: this.game.currentPiece.position,
+                type: this.game.currentPiece.type
             }
         };
         this.socket.emit('gameUpdate', state);
@@ -147,6 +191,7 @@ class GameClient {
     }
 
     render() {
+        if (!this.ctx || !this.game.currentPiece) return;  // Don't render if no piece or context
         this.ctx.clearRect(0, 0, this.leftCanvas.width, this.leftCanvas.height);
         this.renderBoard();
         this.renderGhostPiece();  // Add this line before rendering current piece
@@ -154,6 +199,7 @@ class GameClient {
     }
 
     renderGhostPiece() {
+        if (!this.game.currentPiece) return;  // Skip if no current piece
         const ghostPiece = this.game.getGhostPiecePosition();
         const blockSize = this.leftCanvas.width / 10;
         const color = COLORS[this.game.currentPiece.type];
@@ -196,6 +242,7 @@ class GameClient {
     }
 
     renderCurrentPiece() {
+        if (!this.game.currentPiece) return;  // Skip if no current piece
         const piece = this.game.currentPiece;
         const blockSize = this.leftCanvas.width / 10;
         const color = COLORS[piece.type];
@@ -257,12 +304,36 @@ class GameClient {
         const scoreElement = data.playerId === 'player1' ? 'score1' : 'score2';
         document.getElementById(scoreElement).textContent = data.score;
     }
+
+    renderPreviewQueue() {
+        const blockSize = 20;
+        this.previewCtx.clearRect(0, 0, this.previewCanvas.width, this.previewCanvas.height);
+        
+        this.game.pieceQueue.forEach((type, index) => {
+            const shape = SHAPES[type];
+            const color = COLORS[type];
+            const offsetY = index * 50;  // Space between pieces
+
+            shape.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value) {
+                        this.previewCtx.fillStyle = color;
+                        this.previewCtx.fillRect(
+                            x * blockSize + 20,
+                            y * blockSize + offsetY + 10,
+                            blockSize - 1,
+                            blockSize - 1
+                        );
+                    }
+                });
+            });
+        });
+    }
 }
 
-// Initialize game when DOM is loaded
+// Single initialization
 window.addEventListener('DOMContentLoaded', () => {
     const leftCanvas = document.getElementById('player1');
     const rightCanvas = document.getElementById('player2');
-    
     new GameClient(leftCanvas, rightCanvas);
 });

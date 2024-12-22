@@ -3,6 +3,7 @@
     justify-content: center;
     gap: 2rem;
     padding: 2rem;
+    align-items: flex-start;  /* Add this line */
 }
 
 .player-section {
@@ -12,6 +13,12 @@
 canvas {
     border: 2px solid #333;
     background: #f0f0f0;
+}
+
+canvas:nth-child(3) {  /* Preview queue canvas */
+    border: 1px solid #333;
+    background: #f8f8f8;
+    margin-left: 1rem;
 }
 
 .score {
