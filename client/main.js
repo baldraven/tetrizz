@@ -13,6 +13,13 @@ class GameClient {
         this.playerId = null;
         this.gameStarted = false;
         
+        this.lastTime = 0;
+        this.dropCounter = 0;
+        this.moveCounter = 0;
+        this.moveDelay = 100; // Initial delay before auto-repeat
+        this.moveInterval = 50; // Speed of auto-repeat
+        this.heldKeys = new Set();
+        
         this.setupSocketEvents();
         this.setupEvents();
     }
@@ -47,31 +54,43 @@ class GameClient {
         document.addEventListener('keydown', (event) => {
             if (!this.gameStarted) return;
             
-            switch(event.key) {
-                case 'j':
-                    this.player.move('left');
-                    break;
-                case 'l':
-                    this.player.move('right');
-                    break;
-                case 'k':
-                    this.player.move('down');
-                    break;
-                case 'a':
-                    this.player.rotate('counterclockwise');
-                    break;
-                case 's':
-                    this.player.rotate('clockwise');
-                    break;
-                case 'q':
-                    this.player.rotate('180');
-                    break;
-                case 'c':
-                    this.player.hardDrop();
-                    break;
+            if (!this.heldKeys.has(event.key)) {
+                this.heldKeys.add(event.key);
+                this.handleInput(event.key); // Immediate response
             }
-            this.sendGameState();
         });
+
+        document.addEventListener('keyup', (event) => {
+            this.heldKeys.delete(event.key);
+            this.moveCounter = 0;
+        });
+    }
+
+    handleInput(key) {
+        switch(key) {
+            case 'j':
+                this.player.move('left');
+                break;
+            case 'l':
+                this.player.move('right');
+                break;
+            case 'k':
+                this.player.move('down');
+                break;
+            case 'a':
+                this.player.rotate('counterclockwise');
+                break;
+            case 's':
+                this.player.rotate('clockwise');
+                break;
+            case 'q':
+                this.player.rotate('180');
+                break;
+            case 'c':
+                this.player.hardDrop();
+                break;
+        }
+        this.sendGameState();
     }
 
     sendGameState() {
@@ -93,17 +112,33 @@ class GameClient {
     }
 
     startGameLoop() {
-        let lastTime = 0;
         const gameLoop = (timestamp) => {
-            const deltaTime = timestamp - lastTime;
+            const deltaTime = timestamp - this.lastTime;
+            this.lastTime = timestamp;
 
-            if (deltaTime > this.game.getDropInterval()) {
-                this.game.update();
-                this.render();
-                this.sendGameState();
-                lastTime = timestamp;
+            // Handle held keys with auto-repeat
+            this.moveCounter += deltaTime;
+            if (this.moveCounter >= this.moveDelay) {
+                const repeatInterval = this.moveCounter >= this.moveDelay + this.moveInterval;
+                if (repeatInterval) {
+                    this.heldKeys.forEach(key => {
+                        if (['j', 'l', 'k'].includes(key)) { // Only auto-repeat movement keys
+                            this.handleInput(key);
+                        }
+                    });
+                    this.moveCounter = this.moveDelay; // Reset to delay point
+                }
             }
 
+            // Handle piece dropping
+            this.dropCounter += deltaTime;
+            if (this.dropCounter > this.game.getDropInterval()) {
+                this.game.update();
+                this.dropCounter = 0;
+                this.sendGameState();
+            }
+
+            this.render();
             requestAnimationFrame(gameLoop);
         };
 
@@ -111,7 +146,9 @@ class GameClient {
     }
 
     render() {
+        // Use requestAnimationFrame's timestamp for smooth animations
         this.ctx.clearRect(0, 0, this.leftCanvas.width, this.leftCanvas.height);
+        window.performance.now(); // Force sync before rendering
         this.renderBoard();
         this.renderCurrentPiece();
     }

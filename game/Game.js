@@ -46,6 +46,8 @@ export default class Game {
   }
 
   getDropInterval() {
-    return LEVEL[Math.min(this.level, 5)];
+    const baseInterval = 1000; // 1 second base interval
+    const speedFactor = Math.pow(0.8, this.level); // Exponential speed increase
+    return baseInterval * speedFactor;
   }
 }
