@@ -118,12 +118,17 @@ class GameClient {
         let needsNewPiece = false;
         
         switch(key) {
+            case 'k':
+                // If piece locks after soft drop, request new piece
+                if (this.game.update() === 'locked') {
+                    needsNewPiece = true;
+                }
+                break;
             case 'c':
                 this.player.hardDrop();
                 needsNewPiece = true;
                 break;
             default:
-                // Handle other inputs
                 this.player.handleInput(key);
                 break;
         }
@@ -178,7 +183,11 @@ class GameClient {
             // Handle piece dropping
             this.dropCounter += deltaTime;
             if (this.dropCounter > this.game.getDropInterval()) {
-                this.game.update();
+                const updateResult = this.game.update();
+                if (updateResult === 'locked') {
+                    // Request new piece when current piece is locked
+                    this.socket.emit('requestPiece');
+                }
                 this.dropCounter = 0;
                 this.sendGameState();
             }

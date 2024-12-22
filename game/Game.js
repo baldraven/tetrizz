@@ -39,10 +39,10 @@ export default class Game {
     const newPosition = this.currentPiece.move('down');
     if (this.board.isCollision(this.currentPiece, newPosition)) {
       this.lockPiece();
-      return true; // Indicate that piece was locked
+      return 'locked'; // Return status to indicate piece was locked
     } else {
       this.currentPiece.position = newPosition;
-      return false;
+      return 'moved';
     }
   }
 
