@@ -14,6 +14,8 @@ export default class Game {
     this.lockTimer = 0;
     this.isLocking = false;
     this.lastMoveWasReset = false;
+    this.holdPiece = null;
+    this.hasHeldThisTurn = false;
   }
 
   generatePiece() {
@@ -77,6 +79,7 @@ export default class Game {
     const linesCleared = this.board.clearLines();
     this.updateScore(linesCleared);
     this.currentPiece = null;  // Set to null to trigger piece request
+    this.hasHeldThisTurn = false; // Reset hold flag when piece locks
   }
 
   updateScore(linesCleared) {
@@ -121,5 +124,24 @@ export default class Game {
         return true;
     }
     return !this.board.isCollision(this.currentPiece, newPosition);
+  }
+
+  holdCurrentPiece() {
+    if (this.hasHeldThisTurn) return false;
+    
+    const currentType = this.currentPiece.type;
+    const currentShape = SHAPES[currentType];
+    
+    if (this.holdPiece === null) {
+        this.holdPiece = { type: currentType, shape: currentShape };
+        this.currentPiece = this.generatePiece();
+    } else {
+        const tempHold = this.holdPiece;
+        this.holdPiece = { type: currentType, shape: currentShape };
+        this.currentPiece = new Piece(tempHold.shape, tempHold.type);
+    }
+    
+    this.hasHeldThisTurn = true;
+    return true;
   }
 }

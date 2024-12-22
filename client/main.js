@@ -33,6 +33,21 @@ class GameClient {
         
         this.previewCtx = this.previewCanvas.getContext('2d');
         
+        // Add hold piece canvases for both players
+        const holdSections = document.querySelectorAll('.hold-section');
+        this.holdCanvas = document.createElement('canvas');
+        this.opponentHoldCanvas = document.createElement('canvas');
+        
+        [this.holdCanvas, this.opponentHoldCanvas].forEach((canvas, index) => {
+            canvas.width = 80;
+            canvas.height = 80;
+            canvas.classList.add('hold-piece');
+            holdSections[index].appendChild(canvas);
+        });
+        
+        this.holdCtx = this.holdCanvas.getContext('2d');
+        this.opponentHoldCtx = this.opponentHoldCanvas.getContext('2d');
+        
         this.setupSocketEvents();
         this.setupEvents();
 
@@ -76,10 +91,14 @@ class GameClient {
             if (this.playerId === 'player1') {
                 this.ctx = leftCtx;
                 this.opponentCtx = rightCtx;
+                this.holdCtx = this.holdCanvas.getContext('2d');
+                this.opponentHoldCtx = this.opponentHoldCanvas.getContext('2d');
                 document.querySelector('.player-section:first-child h2').style.color = 'red';
             } else {
                 this.ctx = rightCtx;
                 this.opponentCtx = leftCtx;
+                this.holdCtx = this.opponentHoldCanvas.getContext('2d');
+                this.opponentHoldCtx = this.holdCanvas.getContext('2d');
                 document.querySelector('.player-section:last-child h2').style.color = 'red';
             }
         });
@@ -177,7 +196,8 @@ class GameClient {
                 shape: this.game.currentPiece.shape,
                 position: this.game.currentPiece.position,
                 type: this.game.currentPiece.type
-            }
+            },
+            holdPiece: this.game.holdPiece
         };
         this.socket.emit('gameUpdate', state);
         
@@ -230,6 +250,7 @@ class GameClient {
         this.renderBoard();
         this.renderGhostPiece();  // Add this line before rendering current piece
         this.renderCurrentPiece();
+        this.renderHoldPiece();  // Add this line
     }
 
     renderGhostPiece() {
@@ -335,6 +356,44 @@ class GameClient {
         });
     }
 
+    renderHoldPiece(piece = this.game.holdPiece, context = this.holdCtx) {
+        if (!piece) return;
+        
+        context.clearRect(0, 0, this.holdCanvas.width, this.holdCanvas.height);
+        const blockSize = 20;
+        const shape = piece.shape;
+        const color = COLORS[piece.type];
+        
+        // Center the piece
+        const pieceWidth = shape[0].length * blockSize;
+        const pieceHeight = shape.length * blockSize;
+        const xOffset = (this.holdCanvas.width - pieceWidth) / 2;
+        const yOffset = (this.holdCanvas.height - pieceHeight) / 2;
+        
+        shape.forEach((row, y) => {
+            row.forEach((value, x) => {
+                if (value) {
+                    context.fillStyle = color;
+                    context.fillRect(
+                        xOffset + x * blockSize,
+                        yOffset + y * blockSize,
+                        blockSize - 1,
+                        blockSize - 1
+                    );
+                    
+                    context.strokeStyle = '#000';
+                    context.lineWidth = 0.5;
+                    context.strokeRect(
+                        xOffset + x * blockSize,
+                        yOffset + y * blockSize,
+                        blockSize - 1,
+                        blockSize - 1
+                    );
+                }
+            });
+        });
+    }
+
     renderOpponentGame(data) {
         this.opponentCtx.clearRect(0, 0, this.rightCanvas.width, this.rightCanvas.height);
         
@@ -371,6 +430,11 @@ class GameClient {
                     }
                 });
             });
+        }
+
+        // Render opponent's hold piece
+        if (data.holdPiece) {
+            this.renderHoldPiece(data.holdPiece, this.opponentHoldCtx);
         }
 
         // Update opponent's score

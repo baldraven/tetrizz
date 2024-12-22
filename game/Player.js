@@ -56,6 +56,13 @@ export default class Player {
         case 'q':
             this.rotate('180');
             break;
+        case 'd':
+            this.holdPiece();
+            break;
     }
+  }
+
+  holdPiece() {
+    this.game.holdCurrentPiece();
   }
 }
