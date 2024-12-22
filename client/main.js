@@ -25,7 +25,12 @@ class GameClient {
         this.previewCanvas = document.createElement('canvas');
         this.previewCanvas.width = 100;
         this.previewCanvas.height = 400;
-        document.querySelector('.game-container').appendChild(this.previewCanvas);
+        this.previewCanvas.classList.add('preview-queue');
+        
+        // Find the preview section and append the canvas to it
+        const previewSection = document.querySelector('.preview-section');
+        previewSection.appendChild(this.previewCanvas);
+        
         this.previewCtx = this.previewCanvas.getContext('2d');
         
         this.setupSocketEvents();
