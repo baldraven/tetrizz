@@ -63,6 +63,9 @@ class GameClient {
                 case 's':
                     this.player.rotate('clockwise');
                     break;
+                case 'q':
+                    this.player.rotate('180');
+                    break;
                 case 'c':
                     this.player.hardDrop();
                     break;

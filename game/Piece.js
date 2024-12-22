@@ -7,17 +7,29 @@ export default class Piece {
   rotate(direction = 'clockwise') {
     if (direction === 'clockwise') {
       return this.rotateClockwise();
+    } else if (direction === '180') {
+      return this.rotate180();
     } else {
       return this.rotateCounterClockwise();
     }
   }
 
-  rotateClockwise() {
+  rotate180() {
+    // Rotate twice clockwise for 180 degrees
+    let rotated = this.rotateClockwise();
+    rotated = this.rotateClockwise(rotated);
+    return rotated;
+  }
+
+  rotateClockwise(shape = this.shape) {
     const rotated = [];
-    for (let i = 0; i < this.shape[0].length; i++) {
+    const N = shape.length;
+    const M = shape[0].length;
+    
+    for (let i = 0; i < M; i++) {
       const row = [];
-      for (let j = this.shape.length - 1; j >= 0; j--) {
-        row.push(this.shape[j][i]);
+      for (let j = N - 1; j >= 0; j--) {
+        row.push(shape[j][i]);
       }
       rotated.push(row);
     }
@@ -26,9 +38,12 @@ export default class Piece {
 
   rotateCounterClockwise() {
     const rotated = [];
-    for (let i = this.shape[0].length - 1; i >= 0; i--) {
+    const N = this.shape.length;
+    const M = this.shape[0].length;
+    
+    for (let i = M - 1; i >= 0; i--) {
       const row = [];
-      for (let j = 0; j < this.shape.length; j++) {
+      for (let j = 0; j < N; j++) {
         row.push(this.shape[j][i]);
       }
       rotated.push(row);
