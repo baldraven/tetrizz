@@ -10,9 +10,6 @@
     <div class="game-container">
         <div class="player-section">
             <h2>Player 1</h2>
-            <div class="hold-section">
-                <div class="hold-label">Hold</div>
-            </div>
             <canvas id="player1" width="300" height="600"></canvas>
             <div class="score">Score: <span id="score1">0</span></div>
         </div>
@@ -30,12 +27,19 @@
                     <li><span class="key">D</span> - Hold</li>
                 </ul>
             </div>
+            <div class="hold-container">
+                <div class="hold-wrapper">
+                    <div class="hold-label">P1 Hold</div>
+                    <div class="hold-section player1-hold"></div>
+                </div>
+                <div class="hold-wrapper">
+                    <div class="hold-label">P2 Hold</div>
+                    <div class="hold-section player2-hold"></div>
+                </div>
+            </div>
         </div>
         <div class="player-section">
             <h2>Player 2</h2>
-            <div class="hold-section">
-                <div class="hold-label">Hold</div>
-            </div>
             <canvas id="player2" width="300" height="600"></canvas>
             <div class="score">Score: <span id="score2">0</span></div>
         </div>

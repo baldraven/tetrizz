@@ -42,8 +42,11 @@ class GameClient {
             canvas.width = 80;
             canvas.height = 80;
             canvas.classList.add('hold-piece');
-            holdSections[index].appendChild(canvas);
         });
+
+        // Append to correct sections
+        document.querySelector('.player1-hold').appendChild(this.holdCanvas);
+        document.querySelector('.player2-hold').appendChild(this.opponentHoldCanvas);
         
         this.holdCtx = this.holdCanvas.getContext('2d');
         this.opponentHoldCtx = this.opponentHoldCanvas.getContext('2d');
