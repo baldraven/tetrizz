@@ -29,7 +29,8 @@ export default class Player {
       this.game.currentPiece,
       this.game.currentPiece.move('down')
     )) {
-      this.move('down');
+      this.game.currentPiece.position = this.game.currentPiece.move('down');
     }
+    this.game.lockPiece(); // Instantly lock the piece
   }
 }

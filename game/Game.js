@@ -35,6 +35,17 @@ export default class Game {
     }
   }
 
+  lockPiece() {
+    this.board.placePiece(this.currentPiece);
+    const linesCleared = this.board.clearLines();
+    this.updateScore(linesCleared);
+    this.currentPiece = this.generatePiece();
+    
+    if (this.board.isCollision(this.currentPiece, this.currentPiece.position)) {
+        this.isGameOver = true;
+    }
+  }
+
   updateScore(linesCleared) {
     switch(linesCleared) {
       case 1: this.score += POINTS.SINGLE; break;
