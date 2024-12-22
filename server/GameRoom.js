@@ -7,25 +7,40 @@ class GameRoom {
         this.activeGames = new Set();
         this.pieceQueue = [];
         this.pieceTypes = ['I', 'O', 'T', 'L', 'J', 'S', 'Z'];
-        this.initializePieceQueue();
+        this.currentBag = [];
+        this.nextBag = [];
+        this.initializeBags();
     }
 
-    initializePieceQueue() {
-        // Fill queue with 7 pieces
-        while (this.pieceQueue.length < 7) {
-            this.addNewPieceToQueue();
+    initializeBags() {
+        this.currentBag = this.generateNewBag();
+        this.nextBag = this.generateNewBag();
+        this.pieceQueue = [...this.currentBag, ...this.nextBag].slice(0, 7);
+    }
+
+    generateNewBag() {
+        // Create array with one of each piece
+        const bag = [...this.pieceTypes];
+        
+        // Fisher-Yates shuffle
+        for (let i = bag.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [bag[i], bag[j]] = [bag[j], bag[i]];
         }
-    }
-
-    addNewPieceToQueue() {
-        const type = this.pieceTypes[Math.floor(Math.random() * this.pieceTypes.length)];
-        this.pieceQueue.push(type);
+        
+        return bag;
     }
 
     getNextPiece() {
-        const piece = this.pieceQueue.shift();
-        this.addNewPieceToQueue();
-        console.log('Current queue:', this.pieceQueue);  // Debug log
+        if (this.currentBag.length === 0) {
+            this.currentBag = this.nextBag;
+            this.nextBag = this.generateNewBag();
+        }
+
+        const piece = this.currentBag.shift();
+        this.pieceQueue = [...this.currentBag, ...this.nextBag].slice(0, 7);
+        
+        console.log('Current queue:', this.pieceQueue);
         return piece;
     }
 
