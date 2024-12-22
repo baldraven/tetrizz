@@ -13,23 +13,25 @@
             <canvas id="player1" width="300" height="600"></canvas>
             <div class="score">Score: <span id="score1">0</span></div>
         </div>
-        <div class="preview-section">
-            <div class="preview-label">Next</div>
+        <div class="middle-section">
+            <div class="preview-section">
+                <div class="preview-label">Next</div>
+            </div>
+            <div class="controls">
+                <ul>
+                    <li><span class="key">J</span> / <span class="key">L</span> - Move Left/Right</li>
+                    <li><span class="key">K</span> - Soft Drop</li>
+                    <li><span class="key">C</span> - Hard Drop</li>
+                    <li><span class="key">A</span> / <span class="key">S</span> - Rotate</li>
+                    <li><span class="key">Q</span> - 180° Rotation</li>
+                </ul>
+            </div>
         </div>
         <div class="player-section">
             <h2>Player 2</h2>
             <canvas id="player2" width="300" height="600"></canvas>
             <div class="score">Score: <span id="score2">0</span></div>
         </div>
-    </div>
-    <div class="controls">
-        <ul>
-            <li><span class="key">J</span> / <span class="key">L</span> - Move Left/Right</li>
-            <li><span class="key">K</span> - Soft Drop</li>
-            <li><span class="key">C</span> - Hard Drop</li>
-            <li><span class="key">A</span> / <span class="key">S</span> - Rotate</li>
-            <li><span class="key">Q</span> - 180° Rotation</li>
-        </ul>
     </div>
     <script src="/socket.io/socket.io.js"></script>
     <script type="module" src="client/main.js"></script>
