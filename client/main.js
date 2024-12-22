@@ -260,15 +260,54 @@ class GameClient {
         const grid = this.game.board.grid;
         const blockSize = this.leftCanvas.width / 10;
 
+        // Draw grid background
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        for (let y = 0; y < 20; y++) {
+            for (let x = 0; x < 10; x++) {
+                this.ctx.fillRect(
+                    x * blockSize, 
+                    y * blockSize, 
+                    blockSize - 1, 
+                    blockSize - 1
+                );
+            }
+        }
+
+        // Draw pieces with gradient and glow
         grid.forEach((row, y) => {
             row.forEach((value, x) => {
                 if (value) {
-                    // Assuming value contains the piece type as string ('I', 'O', etc.)
-                    this.ctx.fillStyle = COLORS[value];
-                    this.ctx.fillRect(x * blockSize, y * blockSize, blockSize - 1, blockSize - 1);
+                    const color = COLORS[value];
+                    const gradient = this.ctx.createLinearGradient(
+                        x * blockSize,
+                        y * blockSize,
+                        (x + 1) * blockSize,
+                        (y + 1) * blockSize
+                    );
+                    gradient.addColorStop(0, color);
+                    gradient.addColorStop(1, this.adjustColor(color, -30));
+                    
+                    this.ctx.shadowColor = color;
+                    this.ctx.shadowBlur = 5;
+                    this.ctx.fillStyle = gradient;
+                    this.ctx.fillRect(
+                        x * blockSize,
+                        y * blockSize,
+                        blockSize - 1,
+                        blockSize - 1
+                    );
+                    this.ctx.shadowBlur = 0;
                 }
             });
         });
+    }
+
+    adjustColor(color, amount) {
+        const hex = color.replace('#', '');
+        const r = Math.max(0, Math.min(255, parseInt(hex.substr(0, 2), 16) + amount));
+        const g = Math.max(0, Math.min(255, parseInt(hex.substr(2, 2), 16) + amount));
+        const b = Math.max(0, Math.min(255, parseInt(hex.substr(4, 2), 16) + amount));
+        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
     }
 
     renderCurrentPiece() {
