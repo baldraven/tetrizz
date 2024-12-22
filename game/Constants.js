@@ -8,6 +8,16 @@ export const SHAPES = {
   Z: [[1, 1, 0], [0, 1, 1]]
 };
 
+export const COLORS = {
+  I: '#00f0f0', // Cyan
+  O: '#f0f000', // Yellow
+  T: '#a000f0', // Purple
+  L: '#f0a000', // Orange
+  J: '#0000f0', // Blue
+  S: '#00f000', // Green
+  Z: '#f00000', // Red
+};
+
 export const POINTS = {
   SINGLE: 100,
   DOUBLE: 300,

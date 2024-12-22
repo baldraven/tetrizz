@@ -1,4 +1,4 @@
-import { SHAPES, POINTS, LEVEL } from './Constants.js';
+import { SHAPES, POINTS, LEVEL, COLORS } from './Constants.js';
 import Board from './Board.js';
 import Piece from './Piece.js';
 
@@ -12,9 +12,9 @@ export default class Game {
   }
 
   generatePiece() {
-    const shapes = Object.values(SHAPES);
-    const randomShape = shapes[Math.floor(Math.random() * shapes.length)];
-    return new Piece(randomShape);
+    const types = Object.keys(SHAPES);
+    const type = types[Math.floor(Math.random() * types.length)];
+    return new Piece(SHAPES[type], type);
   }
 
   update() {

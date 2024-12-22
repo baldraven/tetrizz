@@ -1,5 +1,6 @@
 import Game from '../game/Game.js';
 import Player from '../game/Player.js';
+import { COLORS } from '../game/Constants.js';
 
 class GameClient {
     constructor(leftCanvas, rightCanvas) {
@@ -155,13 +156,18 @@ class GameClient {
     renderGhostPiece() {
         const ghostPiece = this.game.getGhostPiecePosition();
         const blockSize = this.leftCanvas.width / 10;
+        const color = COLORS[this.game.currentPiece.type];
 
         ghostPiece.shape.forEach((row, y) => {
             row.forEach((value, x) => {
                 if (value) {
-                    // Draw ghost piece with a lighter color and border
-                    this.ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
-                    this.ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+                    // Convert hex to rgba for ghost piece
+                    const r = parseInt(color.slice(1,3), 16);
+                    const g = parseInt(color.slice(3,5), 16);
+                    const b = parseInt(color.slice(5,7), 16);
+                    
+                    this.ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.2)`;
+                    this.ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.5)`;
                     this.ctx.lineWidth = 1;
 
                     const ghostX = (ghostPiece.position.x + x) * blockSize;
@@ -181,7 +187,8 @@ class GameClient {
         grid.forEach((row, y) => {
             row.forEach((value, x) => {
                 if (value) {
-                    this.ctx.fillStyle = '#000';
+                    // Assuming value contains the piece type as string ('I', 'O', etc.)
+                    this.ctx.fillStyle = COLORS[value];
                     this.ctx.fillRect(x * blockSize, y * blockSize, blockSize - 1, blockSize - 1);
                 }
             });
@@ -191,11 +198,12 @@ class GameClient {
     renderCurrentPiece() {
         const piece = this.game.currentPiece;
         const blockSize = this.leftCanvas.width / 10;
+        const color = COLORS[piece.type];
 
         piece.shape.forEach((row, y) => {
             row.forEach((value, x) => {
                 if (value) {
-                    this.ctx.fillStyle = '#F00';
+                    this.ctx.fillStyle = color;
                     this.ctx.fillRect(
                         (piece.position.x + x) * blockSize,
                         (piece.position.y + y) * blockSize,
@@ -215,7 +223,7 @@ class GameClient {
         data.board.forEach((row, y) => {
             row.forEach((value, x) => {
                 if (value) {
-                    this.opponentCtx.fillStyle = '#000';
+                    this.opponentCtx.fillStyle = COLORS[value];
                     this.opponentCtx.fillRect(
                         x * blockSize, 
                         y * blockSize, 
@@ -229,10 +237,11 @@ class GameClient {
         // Render opponent's current piece
         if (data.currentPiece) {
             const piece = data.currentPiece;
+            const color = COLORS[piece.type];
             piece.shape.forEach((row, y) => {
                 row.forEach((value, x) => {
                     if (value) {
-                        this.opponentCtx.fillStyle = '#F00';
+                        this.opponentCtx.fillStyle = color;
                         this.opponentCtx.fillRect(
                             (piece.position.x + x) * blockSize,
                             (piece.position.y + y) * blockSize,

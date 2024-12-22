@@ -1,6 +1,7 @@
 export default class Piece {
-  constructor(shape) {
+  constructor(shape, type) {
     this.shape = shape;
+    this.type = type;
     this.position = { x: 3, y: 0 };
   }
 

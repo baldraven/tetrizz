@@ -38,7 +38,8 @@ export default class Board {
     piece.shape.forEach((row, y) => {
       row.forEach((value, x) => {
         if (value) {
-          this.grid[piece.position.y + y][piece.position.x + x] = value;
+          // Store the piece type instead of just 1
+          this.grid[piece.position.y + y][piece.position.x + x] = piece.type;
         }
       });
     });
