@@ -61,4 +61,20 @@ export default class Game {
     const speedFactor = Math.pow(0.8, this.level); // Exponential speed increase
     return baseInterval * speedFactor;
   }
+
+  getGhostPiecePosition() {
+    let ghostPiece = {
+      shape: this.currentPiece.shape,
+      position: { ...this.currentPiece.position }
+    };
+
+    while (!this.board.isCollision(ghostPiece, {
+      x: ghostPiece.position.x,
+      y: ghostPiece.position.y + 1
+    })) {
+      ghostPiece.position.y++;
+    }
+
+    return ghostPiece;
+  }
 }

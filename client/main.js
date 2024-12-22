@@ -146,11 +146,32 @@ class GameClient {
     }
 
     render() {
-        // Use requestAnimationFrame's timestamp for smooth animations
         this.ctx.clearRect(0, 0, this.leftCanvas.width, this.leftCanvas.height);
-        window.performance.now(); // Force sync before rendering
         this.renderBoard();
+        this.renderGhostPiece();  // Add this line before rendering current piece
         this.renderCurrentPiece();
+    }
+
+    renderGhostPiece() {
+        const ghostPiece = this.game.getGhostPiecePosition();
+        const blockSize = this.leftCanvas.width / 10;
+
+        ghostPiece.shape.forEach((row, y) => {
+            row.forEach((value, x) => {
+                if (value) {
+                    // Draw ghost piece with a lighter color and border
+                    this.ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
+                    this.ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+                    this.ctx.lineWidth = 1;
+
+                    const ghostX = (ghostPiece.position.x + x) * blockSize;
+                    const ghostY = (ghostPiece.position.y + y) * blockSize;
+                    
+                    this.ctx.fillRect(ghostX, ghostY, blockSize - 1, blockSize - 1);
+                    this.ctx.strokeRect(ghostX, ghostY, blockSize - 1, blockSize - 1);
+                }
+            });
+        });
     }
 
     renderBoard() {
