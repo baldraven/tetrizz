@@ -307,20 +307,47 @@ class GameClient {
 
     renderPreviewQueue() {
         const blockSize = 20;
+        const padding = 10;
+        const pieceSpacing = 70; // Increased spacing between pieces
         this.previewCtx.clearRect(0, 0, this.previewCanvas.width, this.previewCanvas.height);
         
         this.game.pieceQueue.forEach((type, index) => {
             const shape = SHAPES[type];
             const color = COLORS[type];
-            const offsetY = index * 50;  // Space between pieces
-
+            
+            // Calculate dimensions and centering
+            const pieceWidth = shape[0].length * blockSize;
+            const pieceHeight = shape.length * blockSize;
+            const xOffset = (this.previewCanvas.width - pieceWidth) / 2;
+            const yBase = index * pieceSpacing + padding;
+            
+            // Additional vertical adjustments for specific pieces
+            let yAdjust = 0;
+            if (type === 'I') yAdjust = blockSize / 2;
+            if (type === 'O') yAdjust = -blockSize / 2;
+            
+            // Draw piece with border
             shape.forEach((row, y) => {
                 row.forEach((value, x) => {
                     if (value) {
+                        const xPos = xOffset + x * blockSize;
+                        const yPos = yBase + y * blockSize + yAdjust;
+                        
+                        // Draw block background
                         this.previewCtx.fillStyle = color;
                         this.previewCtx.fillRect(
-                            x * blockSize + 20,
-                            y * blockSize + offsetY + 10,
+                            xPos,
+                            yPos,
+                            blockSize - 1,
+                            blockSize - 1
+                        );
+                        
+                        // Draw block border
+                        this.previewCtx.strokeStyle = '#000';
+                        this.previewCtx.lineWidth = 0.5;
+                        this.previewCtx.strokeRect(
+                            xPos,
+                            yPos,
                             blockSize - 1,
                             blockSize - 1
                         );
