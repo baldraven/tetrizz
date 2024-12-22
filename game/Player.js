@@ -5,7 +5,7 @@ export default class Player {
 
   move(direction) {
     const newPosition = this.game.currentPiece.move(direction);
-    if (!this.game.board.isCollision(this.game.currentPiece, newPosition)) {
+    if (this.game.tryMove(newPosition)) {
       this.game.currentPiece.position = newPosition;
     }
   }
@@ -19,7 +19,7 @@ export default class Player {
       position: currentPosition
     };
     
-    if (!this.game.board.isCollision(testPiece, currentPosition)) {
+    if (this.game.tryMove(currentPosition)) {
       this.game.currentPiece.shape = rotated;
     }
   }

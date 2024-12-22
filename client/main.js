@@ -198,7 +198,6 @@ class GameClient {
                 if (this.dasTimer >= this.DAS) {
                     this.heldKeys.forEach(key => {
                         if (['j', 'l'].includes(key)) {
-                            // After DAS, move as fast as possible (ARR = 0)
                             this.handleInput(key);
                         }
                     });

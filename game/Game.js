@@ -10,6 +10,10 @@ export default class Game {
     this.isGameOver = false;
     this.pieceQueue = [];  // Initialize empty queue
     this.currentPiece = null;  // Don't generate piece immediately
+    this.lockDelay = 500; // 500ms lock delay
+    this.lockTimer = 0;
+    this.isLocking = false;
+    this.lastMoveWasReset = false;
   }
 
   generatePiece() {
@@ -37,12 +41,32 @@ export default class Game {
     if (this.isGameOver || !this.currentPiece) return;
 
     const newPosition = this.currentPiece.move('down');
+    
     if (this.board.isCollision(this.currentPiece, newPosition)) {
-      this.lockPiece();
-      return 'locked'; // Return status to indicate piece was locked
+        // Start lock delay if not already started
+        if (!this.isLocking) {
+            this.isLocking = true;
+            this.lockTimer = this.lockDelay;
+            return 'locking';
+        }
+        
+        // Update lock timer
+        this.lockTimer -= this.getDropInterval();
+        
+        // Lock piece when timer expires
+        if (this.lockTimer <= 0) {
+            this.lockPiece();
+            this.isLocking = false;
+            this.lastMoveWasReset = false;
+            return 'locked';
+        }
+        return 'locking';
     } else {
-      this.currentPiece.position = newPosition;
-      return 'moved';
+        // Reset lock state when piece moves down successfully
+        this.isLocking = false;
+        this.lastMoveWasReset = false;
+        this.currentPiece.position = newPosition;
+        return 'moved';
     }
   }
 
@@ -85,5 +109,17 @@ export default class Game {
     }
 
     return ghostPiece;
+  }
+
+  // Add method to handle movements during lock delay
+  tryMove(newPosition) {
+    if (this.isLocking && !this.lastMoveWasReset && 
+        !this.board.isCollision(this.currentPiece, newPosition)) {
+        // Allow 15 move resets maximum
+        this.lockTimer = this.lockDelay;
+        this.lastMoveWasReset = true;
+        return true;
+    }
+    return !this.board.isCollision(this.currentPiece, newPosition);
   }
 }
