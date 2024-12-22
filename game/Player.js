@@ -10,8 +10,8 @@ export default class Player {
     }
   }
 
-  rotate() {
-    const rotated = this.game.currentPiece.rotate();
+  rotate(direction = 'clockwise') {
+    const rotated = this.game.currentPiece.rotate(direction);
     const currentPosition = this.game.currentPiece.position;
     if (!this.game.board.isCollision({ shape: rotated, position: currentPosition })) {
       this.game.currentPiece.shape = rotated;

@@ -48,19 +48,22 @@ class GameClient {
             if (!this.gameStarted) return;
             
             switch(event.key) {
-                case 'ArrowLeft':
+                case 'j':
                     this.player.move('left');
                     break;
-                case 'ArrowRight':
+                case 'l':
                     this.player.move('right');
                     break;
-                case 'ArrowDown':
+                case 'k':
                     this.player.move('down');
                     break;
-                case 'ArrowUp':
-                    this.player.rotate();
+                case 'a':
+                    this.player.rotate('counterclockwise');
                     break;
-                case ' ':
+                case 's':
+                    this.player.rotate('clockwise');
+                    break;
+                case 'c':
                     this.player.hardDrop();
                     break;
             }
