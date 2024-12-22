@@ -45,6 +45,13 @@ class GameClient {
             // Optionally display message to user
             alert('Game room is full. Please try again later.');
         });
+
+        // Control timing constants
+        this.DAS = 100;  // Delayed Auto Shift: 100ms
+        this.ARR = 0;    // Auto-Repeat Rate: 0ms (instant)
+        this.DCD = 5;    // DAS Cut Delay: 5ms
+        this.lastMoveTime = 0;
+        this.dasTimer = 0;
     }
 
     setupSocketEvents() {
@@ -102,24 +109,34 @@ class GameClient {
             
             if (!this.heldKeys.has(event.key)) {
                 this.heldKeys.add(event.key);
+                this.dasTimer = 0;  // Reset DAS timer on new keypress
                 this.handleInput(event.key); // Immediate response
             }
         });
 
         document.addEventListener('keyup', (event) => {
             this.heldKeys.delete(event.key);
-            this.moveCounter = 0;
+            if (this.heldKeys.size === 0) {
+                this.dasTimer = 0;
+            }
         });
     }
 
     handleInput(key) {
         if (!this.game.currentPiece || !this.gameStarted) return;
         
+        const now = performance.now();
         let needsNewPiece = false;
         
         switch(key) {
             case 'k':
-                // If piece locks after soft drop, request new piece
+                // Instant soft drop
+                while (!this.game.board.isCollision(
+                    this.game.currentPiece,
+                    this.game.currentPiece.move('down')
+                )) {
+                    this.game.currentPiece.position = this.game.currentPiece.move('down');
+                }
                 if (this.game.update() === 'locked') {
                     needsNewPiece = true;
                 }
@@ -129,7 +146,10 @@ class GameClient {
                 needsNewPiece = true;
                 break;
             default:
-                this.player.handleInput(key);
+                if (now - this.lastMoveTime >= this.DCD) {
+                    this.player.handleInput(key);
+                    this.lastMoveTime = now;
+                }
                 break;
         }
 
@@ -166,18 +186,20 @@ class GameClient {
             const deltaTime = timestamp - this.lastTime;
             this.lastTime = timestamp;
 
-            // Handle held keys with auto-repeat
-            this.moveCounter += deltaTime;
-            if (this.moveCounter >= this.moveDelay) {
-                const repeatInterval = this.moveCounter >= this.moveDelay + this.moveInterval;
-                if (repeatInterval) {
+            // Handle held keys with DAS
+            if (this.heldKeys.size > 0) {
+                this.dasTimer += deltaTime;
+                
+                if (this.dasTimer >= this.DAS) {
                     this.heldKeys.forEach(key => {
-                        if (['j', 'l', 'k'].includes(key)) { // Only auto-repeat movement keys
+                        if (['j', 'l'].includes(key)) {
+                            // After DAS, move as fast as possible (ARR = 0)
                             this.handleInput(key);
                         }
                     });
-                    this.moveCounter = this.moveDelay; // Reset to delay point
                 }
+            } else {
+                this.dasTimer = 0;
             }
 
             // Handle piece dropping
@@ -185,7 +207,6 @@ class GameClient {
             if (this.dropCounter > this.game.getDropInterval()) {
                 const updateResult = this.game.update();
                 if (updateResult === 'locked') {
-                    // Request new piece when current piece is locked
                     this.socket.emit('requestPiece');
                 }
                 this.dropCounter = 0;
