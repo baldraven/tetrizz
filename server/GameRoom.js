@@ -10,6 +10,9 @@ class GameRoom {
         this.currentBag = [];
         this.nextBag = [];
         this.initializeBags();
+        this.lastGameStates = new Map(); // Store last known states
+        this.vacantRoles = new Set(); // Track which roles are available
+        this.currentPiece = null;  // Add this to track current piece
     }
 
     initializeBags() {
@@ -18,6 +21,7 @@ class GameRoom {
         
         // Take first piece from current bag
         const firstPiece = this.currentBag.shift();
+        this.currentPiece = firstPiece;  // Store current piece
         
         // Create queue from remaining pieces
         this.pieceQueue = [...this.currentBag, ...this.nextBag].slice(0, 6);
@@ -45,6 +49,7 @@ class GameRoom {
         }
 
         const piece = this.currentBag.shift();
+        this.currentPiece = piece;  // Update current piece
         this.pieceQueue = [...this.currentBag, ...this.nextBag].slice(0, 6);
         
         console.log('Next piece:', piece);
@@ -52,27 +57,70 @@ class GameRoom {
         return piece;
     }
 
+    getCurrentOrNewGameState() {
+        if (!this.isGameActive()) {
+            // Start new game
+            return this.initializeBags();
+        } else {
+            // Return current state
+            return {
+                firstPiece: this.currentPiece,
+                queue: this.pieceQueue
+            };
+        }
+    }
+
     addPlayer(socket) {
+        // Try to assign a vacant role first
+        let role;
+        if (this.vacantRoles.size > 0) {
+            // Get the first vacant role
+            role = Array.from(this.vacantRoles)[0];
+            this.vacantRoles.delete(role);
+        } else {
+            // If no vacant roles, assign new role
+            role = this.players.size === 0 ? 'player1' : 'player2';
+        }
+
         this.players.add(socket.id);
-        const role = this.players.size === 1 ? 'player1' : 'player2';
         this.playerRoles.set(socket.id, role);
-        this.gameStates.set(socket.id, {
+
+        // Restore previous state if exists, otherwise create new state
+        const previousState = this.lastGameStates.get(role) || {
             board: [],
             score: 0,
             level: 0,
             role,
-            currentPiece: null
-        });
+            currentPiece: null,
+            holdPiece: null
+        };
+
+        this.gameStates.set(socket.id, previousState);
         
+        // Initialize bags if this is the first player and no game is active
+        if (this.players.size === 1 && !this.isGameActive()) {
+            this.initializeBags();
+        }
+
         if (this.players.size === 2) {
             this.activeGames.add('default');
         }
+
+        return { role, gameState: previousState };
     }
 
     removePlayer(socketId) {
+        const role = this.playerRoles.get(socketId);
+        // Store the last known state before removing player
+        if (role) {
+            this.lastGameStates.set(role, this.gameStates.get(socketId));
+            this.vacantRoles.add(role);
+        }
+
         this.players.delete(socketId);
         this.gameStates.delete(socketId);
         this.playerRoles.delete(socketId);
+        
         if (this.players.size < 2) {
             this.activeGames.clear();
         }

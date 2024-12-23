@@ -37,13 +37,18 @@ io.on('connection', socket => {
     const playerId = room.players.size === 0 ? 'player1' : 'player2';
     console.log(`Assigning player as: ${playerId}`);
     
-    room.addPlayer(socket);
-    socket.emit('playerAssigned', { playerId });
+    const { role, gameState } = room.addPlayer(socket);
+    socket.emit('playerAssigned', { 
+        playerId: role, 
+        gameState,
+        currentQueue: room.pieceQueue
+    });
 
     // Start game when two players are connected
     if (room.players.size === 2) {
         console.log('Two players connected, starting game...');
-        const { firstPiece, queue } = room.initializeBags();
+        // Always get current game state, whether it's new or existing
+        const { firstPiece, queue } = room.getCurrentOrNewGameState();
         io.emit('startGame', { firstPiece, initialQueue: queue });
     }
 

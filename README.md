@@ -6,7 +6,6 @@ not sure but pieces may not fall at the same speed (desync ?)
 piece get stuck in wall / other pieces
 piece not rotating sometimes
 wrong spawning rotation (and position ?)
-first piece in queue should be consumed at round start
 shadow effects on only one player
 
 👻  list :

@@ -95,18 +95,14 @@ class GameClient {
     }
 
     setupSocketEvents() {
-        this.socket.on('playerAssigned', ({ playerId }) => {
+        this.socket.on('playerAssigned', ({ playerId, gameState, currentQueue }) => {
             console.log('Assigned as:', playerId);
             this.playerId = playerId;
             
             // Clear both canvases first
             const leftCtx = this.leftCanvas.getContext('2d');
             const rightCtx = this.rightCanvas.getContext('2d');
-            leftCtx.fillStyle = '#fff';
-            rightCtx.fillStyle = '#fff';
-            leftCtx.fillRect(0, 0, this.leftCanvas.width, this.leftCanvas.height);
-            rightCtx.fillRect(0, 0, this.rightCanvas.width, this.rightCanvas.height);
-
+            
             // Assign contexts based on player role
             if (this.playerId === 'player1') {
                 this.ctx = leftCtx;
@@ -121,18 +117,38 @@ class GameClient {
                 this.opponentHoldCtx = this.holdCanvas.getContext('2d');
                 document.querySelector('.player-section:last-child h2').style.color = 'red';
             }
+
+            // Restore game state if exists
+            if (gameState && gameState.board.length > 0) {
+                this.game.board.grid = gameState.board;
+                this.game.score = gameState.score;
+                this.game.level = gameState.level;
+                this.game.holdPiece = gameState.holdPiece;
+                this.game.pieceQueue = currentQueue;
+                
+                if (gameState.currentPiece) {
+                    this.game.currentPiece = new Piece(
+                        SHAPES[gameState.currentPiece.type],
+                        gameState.currentPiece.type
+                    );
+                    this.game.currentPiece.position = gameState.currentPiece.position;
+                }
+                
+                this.gameStarted = true;
+                this.renderPreviewQueue();
+                this.startGameLoop();
+            }
         });
 
         this.socket.on('startGame', ({ firstPiece, initialQueue }) => {
             console.log('Game started/restarted with piece:', firstPiece, 'and queue:', initialQueue);
             this.gameStarted = true;
             this.game.pieceQueue = initialQueue;
-            this.game.currentPiece = new Piece(SHAPES[firstPiece], firstPiece);
-            this.renderPreviewQueue();
-            // Only start game loop if it's the initial start, not a restart
-            if (!this.gameOver) {
-                this.startGameLoop();
+            if (!this.game.currentPiece && firstPiece) {
+                this.game.currentPiece = new Piece(SHAPES[firstPiece], firstPiece);
             }
+            this.renderPreviewQueue();
+            this.startGameLoop();
         });
 
         this.socket.on('gameUpdate', (data) => {
