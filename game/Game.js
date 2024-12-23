@@ -23,7 +23,7 @@ export default class Game {
       console.log('Waiting for piece queue...');
       return null;
     }
-    const type = this.pieceQueue[0];
+    const type = this.pieceQueue.shift(); // Remove and get the next piece
     const piece = new Piece(SHAPES[type], type);
     
     // Check for top out (game over)
@@ -140,18 +140,21 @@ export default class Game {
   }
 
   holdCurrentPiece() {
-    if (this.hasHeldThisTurn) return false;
+    if (this.hasHeldThisTurn || !this.currentPiece) return false;
     
     const currentType = this.currentPiece.type;
     const currentShape = SHAPES[currentType];
     
     if (this.holdPiece === null) {
+        // Store current piece in hold
         this.holdPiece = { type: currentType, shape: currentShape };
-        this.currentPiece = this.generatePiece();
+        // Current piece becomes null to trigger next piece request
+        this.currentPiece = null;
     } else {
+        // Swap current piece with hold piece
         const tempHold = this.holdPiece;
         this.holdPiece = { type: currentType, shape: currentShape };
-        this.currentPiece = new Piece(tempHold.shape, tempHold.type);
+        this.currentPiece = new Piece(SHAPES[tempHold.type], tempHold.type);
     }
     
     this.hasHeldThisTurn = true;

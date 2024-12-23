@@ -15,7 +15,14 @@ class GameRoom {
     initializeBags() {
         this.currentBag = this.generateNewBag();
         this.nextBag = this.generateNewBag();
-        this.pieceQueue = [...this.currentBag, ...this.nextBag].slice(0, 7);
+        
+        // Take first piece from current bag
+        const firstPiece = this.currentBag.shift();
+        
+        // Create queue from remaining pieces
+        this.pieceQueue = [...this.currentBag, ...this.nextBag].slice(0, 6);
+        
+        return { firstPiece, queue: this.pieceQueue };
     }
 
     generateNewBag() {
@@ -38,9 +45,10 @@ class GameRoom {
         }
 
         const piece = this.currentBag.shift();
-        this.pieceQueue = [...this.currentBag, ...this.nextBag].slice(0, 7);
+        this.pieceQueue = [...this.currentBag, ...this.nextBag].slice(0, 6);
         
-        console.log('Current queue:', this.pieceQueue);
+        console.log('Next piece:', piece);
+        console.log('New queue:', this.pieceQueue);
         return piece;
     }
 

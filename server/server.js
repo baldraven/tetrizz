@@ -43,7 +43,8 @@ io.on('connection', socket => {
     // Start game when two players are connected
     if (room.players.size === 2) {
         console.log('Two players connected, starting game...');
-        io.emit('startGame', { initialQueue: room.pieceQueue });
+        const { firstPiece, queue } = room.initializeBags();
+        io.emit('startGame', { firstPiece, initialQueue: queue });
     }
 
     socket.on('gameUpdate', data => {

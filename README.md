@@ -1,7 +1,6 @@
 # Tetrizz
 
 🪳 list :
-does not die if topping out
 tabbing out pauses the game
 not sure but pieces may not fall at the same speed (desync ?)
 piece get stuck in wall / other pieces

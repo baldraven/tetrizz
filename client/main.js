@@ -123,13 +123,13 @@ class GameClient {
             }
         });
 
-        this.socket.on('startGame', ({ initialQueue }) => {
-            console.log('Game started with queue:', initialQueue);
+        this.socket.on('startGame', ({ firstPiece, initialQueue }) => {
+            console.log('Game started with piece:', firstPiece, 'and queue:', initialQueue);
             this.gameStarted = true;
             this.game.pieceQueue = initialQueue;
-            this.game.initializeFirstPiece(); // Initialize the first piece
+            this.game.currentPiece = new Piece(SHAPES[firstPiece], firstPiece);
             this.renderPreviewQueue();
-            this.startGameLoop(); // Both players start their game loops
+            this.startGameLoop();
         });
 
         this.socket.on('gameUpdate', (data) => {
@@ -242,7 +242,7 @@ class GameClient {
     }
 
     handleInput(key) {
-        if (this.gameOver) return;  // Add this line at the start
+        if (this.gameOver) return;
         if (!this.game.currentPiece || !this.gameStarted) return;
         
         const now = performance.now();
@@ -264,6 +264,14 @@ class GameClient {
             case 'c':
                 this.player.hardDrop();
                 needsNewPiece = true;
+                break;
+            case 'd':
+                if (this.game.holdCurrentPiece()) {
+                    // Only request new piece if we don't have a current piece
+                    if (this.game.currentPiece === null) {
+                        this.socket.emit('requestPiece');
+                    }
+                }
                 break;
             default:
                 if (now - this.lastMoveTime >= this.DCD) {
