@@ -47,6 +47,7 @@ export default class Game {
   }
 
   update() {
+    if (this.isGameOver) return 'gameover';  // Add this line at the start
     if (this.isGameOver || !this.currentPiece) return;
 
     const newPosition = this.currentPiece.move('down');
@@ -155,5 +156,10 @@ export default class Game {
     
     this.hasHeldThisTurn = true;
     return true;
+  }
+
+  handleInput(key) {
+    if (this.isGameOver) return false;  // Add this line at the start
+    // ...existing code...
   }
 }

@@ -189,3 +189,26 @@ canvas:nth-child(3) {
 .game-container > .controls {
     display: none;
 }
+
+.restart-button {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #ff0055;
+    color: #fff;
+    border: none;
+    padding: 1rem 2rem;
+    font-family: 'Press Start 2P', system-ui;
+    font-size: 1rem;
+    cursor: pointer;
+    border-radius: 5px;
+    box-shadow: 0 0 20px rgba(255, 0, 85, 0.5);
+    z-index: 100;
+    display: none; /* Hidden by default */
+}
+
+.restart-button:hover {
+    background: #ff1a6b;
+    box-shadow: 0 0 30px rgba(255, 0, 85, 0.7);
+}

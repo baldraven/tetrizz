@@ -49,6 +49,13 @@ io.on('connection', socket => {
     socket.on('gameUpdate', data => {
         room.updatePlayerState(socket.id, data);
         const otherPlayers = room.getOtherPlayers(socket.id);
+        
+        // If game is over, notify all players who won
+        if (data.isGameOver) {
+            const winner = otherPlayers[0]; // The other player won
+            io.emit('gameOver', { winner });
+        }
+        
         otherPlayers.forEach(playerId => {
             io.to(playerId).emit('gameUpdate', data);
         });
@@ -61,6 +68,13 @@ io.on('connection', socket => {
             queue: room.pieceQueue,
             nextPiece: piece
         });
+    });
+
+    socket.on('requestRestart', () => {
+        const room = rooms.get('default');
+        room.resetGame();
+        io.emit('gameRestart');
+        io.emit('startGame', { initialQueue: room.pieceQueue });
     });
 
     socket.on('disconnect', () => {

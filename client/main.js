@@ -78,6 +78,20 @@ class GameClient {
         this.gameOver = false;
         this.isWinner = false;  // Add this line
         this.opponentGameOver = false;  // Add this line
+        this.restartButton = null;
+        this.createRestartButton();
+    }
+
+    createRestartButton() {
+        this.restartButton = document.createElement('button');
+        this.restartButton.className = 'restart-button';
+        this.restartButton.textContent = 'Play Again';
+        this.restartButton.style.display = 'none';
+        this.restartButton.addEventListener('click', () => {
+            this.socket.emit('requestRestart');
+            this.restartButton.style.display = 'none';
+        });
+        document.body.appendChild(this.restartButton);
     }
 
     setupSocketEvents() {
@@ -126,7 +140,7 @@ class GameClient {
                     this.opponentGameOver = true;
                     this.isWinner = true;
                     this.gameOver = true;
-                    this.showWinScreen();
+                    this.showGameEndScreens();  // Changed from showWinScreen
                 }
             }
         });
@@ -139,33 +153,73 @@ class GameClient {
             this.renderPreviewQueue();
         });
 
+        this.socket.on('gameOver', ({ winner }) => {
+            this.gameOver = true;
+            this.isWinner = winner === this.playerId;
+            this.showGameEndScreens();
+            this.restartButton.style.display = 'block';
+        });
+
+        this.socket.on('gameRestart', () => {
+            this.restartGame();
+        });
+
         // Remove the gameOver socket event as we'll handle it through gameUpdate
     }
 
-    showWinScreen() {
-        // Draw semi-transparent victory overlay
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        this.ctx.fillRect(0, 0, this.leftCanvas.width, this.leftCanvas.height);
-
-        // Draw victory text
-        this.ctx.fillStyle = '#00ff00';  // Victory green
-        this.ctx.font = '30px "Press Start 2P"';
-        this.ctx.textAlign = 'center';
-        this.ctx.textBaseline = 'middle';
-        this.ctx.fillText('VICTORY!', this.leftCanvas.width / 2, this.leftCanvas.height / 2);
+    showGameEndScreens() {
+        // Draw player's board outcome
+        this.drawGameEndOverlay(this.ctx, true); // true = is player's board
+        
+        // Draw opponent's board outcome
+        this.drawGameEndOverlay(this.opponentCtx, false); // false = is opponent's board
     }
 
-    showGameOver() {
-        // Draw semi-transparent game over overlay
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        this.ctx.fillRect(0, 0, this.leftCanvas.width, this.leftCanvas.height);
+    drawGameEndOverlay(ctx, isPlayerBoard) {
+        // Draw overlay
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(0, 0, this.leftCanvas.width, this.leftCanvas.height);
 
-        // Draw defeat text
-        this.ctx.fillStyle = '#ff0000';  // Defeat red
-        this.ctx.font = '30px "Press Start 2P"';
-        this.ctx.textAlign = 'center';
-        this.ctx.textBaseline = 'middle';
-        this.ctx.fillText('GAME OVER', this.leftCanvas.width / 2, this.leftCanvas.height / 2);
+        // Draw text
+        ctx.font = '30px "Press Start 2P"';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        if (this.isWinner === isPlayerBoard) {
+            // Show VICTORY on winner's board, DEFEAT on loser's board
+            ctx.fillStyle = '#00ff00';
+            ctx.fillText('VICTORY!', ctx.canvas.width / 2, ctx.canvas.height / 2);
+        } else {
+            ctx.fillStyle = '#ff0000';
+            ctx.fillText('DEFEAT!', ctx.canvas.width / 2, ctx.canvas.height / 2);
+        }
+    }
+
+    restartGame() {
+        // Reset game state
+        this.gameOver = false;
+        this.isWinner = false;
+        this.opponentGameOver = false;
+        this.game = new Game();
+        this.player = new Player(this.game);
+        this.restartButton.style.display = 'none';
+
+        // Clear both canvases
+        [this.ctx, this.opponentCtx].forEach(ctx => {
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        });
+
+        // Reset scores
+        document.getElementById('score1').textContent = '0';
+        document.getElementById('score2').textContent = '0';
+
+        // Clear hold pieces
+        [this.holdCtx, this.opponentHoldCtx].forEach(ctx => {
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        });
+
+        // Clear preview queue
+        this.previewCtx.clearRect(0, 0, this.previewCanvas.width, this.previewCanvas.height);
     }
 
     setupEvents() {
@@ -188,6 +242,7 @@ class GameClient {
     }
 
     handleInput(key) {
+        if (this.gameOver) return;  // Add this line at the start
         if (!this.game.currentPiece || !this.gameStarted) return;
         
         const now = performance.now();
@@ -246,7 +301,7 @@ class GameClient {
         if (this.game.isGameOver && !this.gameOver) {
             this.gameOver = true;
             this.isWinner = false;
-            this.showGameOver();
+            this.showGameEndScreens();  // Changed from showGameOver
         }
         
         // Update score based on player role
@@ -303,11 +358,7 @@ class GameClient {
 
         // Re-render game over/victory overlay if game is over
         if (this.gameOver) {
-            if (this.isWinner) {
-                this.showWinScreen();
-            } else {
-                this.showGameOver();
-            }
+            this.showGameEndScreens();  // This will be the only place we call showGameEndScreens
         }
     }
 
@@ -501,13 +552,10 @@ class GameClient {
 
         // Show game over on opponent's board if they lost
         if (data.isGameOver) {
-            this.opponentCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-            this.opponentCtx.fillRect(0, 0, this.rightCanvas.width, this.rightCanvas.height);
-            this.opponentCtx.fillStyle = '#ff0000';
-            this.opponentCtx.font = '30px "Press Start 2P"';
-            this.opponentCtx.textAlign = 'center';
-            this.opponentCtx.textBaseline = 'middle';
-            this.opponentCtx.fillText('DEFEATED', this.rightCanvas.width / 2, this.rightCanvas.height / 2);
+            // Remove the showGameEndScreens call from here since it's already called in render()
+            this.opponentGameOver = true;
+            this.isWinner = true;
+            this.gameOver = true;
         }
     }
 

@@ -81,6 +81,24 @@ class GameRoom {
     isGameActive() {
         return this.activeGames.has('default');
     }
+
+    resetGame() {
+        this.pieceQueue = [];
+        this.currentBag = [];
+        this.nextBag = [];
+        this.initializeBags();
+        
+        // Reset game states
+        this.gameStates.forEach((state, socketId) => {
+            this.gameStates.set(socketId, {
+                board: [],
+                score: 0,
+                level: 0,
+                role: state.role,
+                currentPiece: null
+            });
+        });
+    }
 }
 
 module.exports = GameRoom;
