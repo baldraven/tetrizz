@@ -94,7 +94,6 @@ class GameRoom {
         this.pieceQueue = [];
         this.currentBag = [];
         this.nextBag = [];
-        this.initializeBags();
         
         // Reset game states
         this.gameStates.forEach((state, socketId) => {
@@ -106,6 +105,7 @@ class GameRoom {
                 currentPiece: null
             });
         });
+        // Don't call initializeBags here anymore, it will be called separately
     }
 }
 

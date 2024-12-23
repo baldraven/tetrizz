@@ -74,8 +74,10 @@ io.on('connection', socket => {
     socket.on('requestRestart', () => {
         const room = rooms.get('default');
         room.resetGame();
+        // Initialize new bags and get first piece and queue
+        const { firstPiece, queue } = room.initializeBags();
         io.emit('gameRestart');
-        io.emit('startGame', { initialQueue: room.pieceQueue });
+        io.emit('startGame', { firstPiece, initialQueue: queue });
     });
 
     socket.on('disconnect', () => {

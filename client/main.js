@@ -124,12 +124,15 @@ class GameClient {
         });
 
         this.socket.on('startGame', ({ firstPiece, initialQueue }) => {
-            console.log('Game started with piece:', firstPiece, 'and queue:', initialQueue);
+            console.log('Game started/restarted with piece:', firstPiece, 'and queue:', initialQueue);
             this.gameStarted = true;
             this.game.pieceQueue = initialQueue;
             this.game.currentPiece = new Piece(SHAPES[firstPiece], firstPiece);
             this.renderPreviewQueue();
-            this.startGameLoop();
+            // Only start game loop if it's the initial start, not a restart
+            if (!this.gameOver) {
+                this.startGameLoop();
+            }
         });
 
         this.socket.on('gameUpdate', (data) => {
