@@ -24,8 +24,15 @@ export default class Game {
       return null;
     }
     const type = this.pieceQueue[0];
-    // Don't remove the piece here, wait for server confirmation
-    return new Piece(SHAPES[type], type);
+    const piece = new Piece(SHAPES[type], type);
+    
+    // Check for top out (game over)
+    if (this.board.isCollision(piece, piece.position)) {
+      this.isGameOver = true;
+      return null;
+    }
+    
+    return piece;
   }
 
   // Add method to initialize the first piece
@@ -80,6 +87,11 @@ export default class Game {
     this.updateScore(linesCleared);
     this.currentPiece = null;  // Set to null to trigger piece request
     this.hasHeldThisTurn = false; // Reset hold flag when piece locks
+    
+    // Check if any blocks are in the top row
+    if (this.board.grid[0].some(cell => cell !== 0)) {
+      this.isGameOver = true;
+    }
   }
 
   updateScore(linesCleared) {
