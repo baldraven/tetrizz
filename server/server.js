@@ -1,10 +1,11 @@
 const express = require('express');
 const app = express();
+const path = require('path');
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 const GameRoom = require('./GameRoom');
 
-app.use(express.static('./'));
+app.use(express.static(path.join(__dirname, '../')));
 
 const rooms = new Map();
 const defaultRoom = new GameRoom('default');
