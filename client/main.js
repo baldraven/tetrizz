@@ -245,18 +245,14 @@ class GameClient {
         document.addEventListener('keydown', (event) => {
             if (!this.gameStarted) return;
             
-            if (!this.heldKeys.has(event.key)) {
-                this.heldKeys.add(event.key);
-                this.dasTimer = 0;  // Reset DAS timer on new keypress
-                this.handleInput(event.key); // Immediate response
-            }
+            // Always process new key even if already held
+            this.handleInput(event.key);
+            // Then add to held keys set
+            this.heldKeys.add(event.key);
         });
 
         document.addEventListener('keyup', (event) => {
             this.heldKeys.delete(event.key);
-            if (this.heldKeys.size === 0) {
-                this.dasTimer = 0;
-            }
         });
     }
 
@@ -266,7 +262,29 @@ class GameClient {
         
         const now = performance.now();
         let needsNewPiece = false;
-        
+        let inputProcessed = false;
+
+        // Process movement inputs
+        if (['j', 'l'].includes(key)) {
+            if (now - this.lastMoveTime >= this.DCD) {
+                this.player.move(key === 'j' ? 'left' : 'right');
+                this.lastMoveTime = now;
+                inputProcessed = true;
+            }
+        }
+
+        // Process rotation inputs (always process regardless of timing)
+        if (['a', 's', 'q'].includes(key)) {
+            const direction = {
+                'a': 'counterclockwise',
+                's': 'clockwise',
+                'q': '180'
+            }[key];
+            this.player.rotate(direction);
+            inputProcessed = true;
+        }
+
+        // Process other inputs
         switch(key) {
             case 'k':
                 // Instant soft drop
@@ -279,31 +297,28 @@ class GameClient {
                 if (this.game.update() === 'locked') {
                     needsNewPiece = true;
                 }
+                inputProcessed = true;
                 break;
             case 'c':
                 this.player.hardDrop();
                 needsNewPiece = true;
+                inputProcessed = true;
                 break;
             case 'd':
                 if (this.game.holdCurrentPiece()) {
-                    // Only request new piece if we don't have a current piece
                     if (this.game.currentPiece === null) {
                         this.socket.emit('requestPiece');
                     }
                 }
-                break;
-            default:
-                if (now - this.lastMoveTime >= this.DCD) {
-                    this.player.handleInput(key);
-                    this.lastMoveTime = now;
-                }
+                inputProcessed = true;
                 break;
         }
 
-        this.sendGameState();
-
-        if (needsNewPiece || this.game.currentPiece === null) {
-            this.socket.emit('requestPiece');
+        if (inputProcessed) {
+            this.sendGameState();
+            if (needsNewPiece || this.game.currentPiece === null) {
+                this.socket.emit('requestPiece');
+            }
         }
     }
 
