@@ -3,7 +3,7 @@ import Player from '../game/Player.js';
 import { COLORS, SHAPES } from '../game/Constants.js';
 import Piece from '../game/Piece.js';
 
-class GameClient {
+export default class GameClient {
     constructor(leftCanvas, rightCanvas) {
         this.leftCanvas = leftCanvas;
         this.rightCanvas = rightCanvas;
@@ -81,6 +81,29 @@ class GameClient {
         this.opponentGameOver = false;  // Add this line
         this.restartButton = null;
         this.createRestartButton();
+
+        // Add garbage indicators
+        this.createGarbageIndicators();
+
+        // Set up game callbacks
+        this.setupGameCallbacks();
+    }
+
+    setupGameCallbacks() {
+        this.game.onTSpin = (lines) => {
+            console.log('T-spin detected with lines:', lines);
+            this.showTSpinPopup(lines);
+        };
+        
+        this.game.onCombo = (combo) => {
+            console.log('Combo detected:', combo);
+            this.showComboPopup(combo);
+        };
+        
+        this.game.onGarbageSend = (amount) => {
+            console.log('🚀 Client attempting to send garbage:', amount);
+            this.socket.emit('sendGarbage', { amount });
+        };
     }
 
     createRestartButton() {
@@ -93,6 +116,58 @@ class GameClient {
             this.restartButton.style.display = 'none';
         });
         document.body.appendChild(this.restartButton);
+    }
+
+    createGarbageIndicators() {
+        const playerSection = document.querySelector('.player-section:first-child');
+        const opponentSection = document.querySelector('.player-section:last-child');
+        
+        this.garbageIndicator = document.createElement('div');
+        this.garbageIndicator.className = 'garbage-indicator';
+        playerSection.appendChild(this.garbageIndicator);
+
+        this.opponentGarbageIndicator = document.createElement('div');
+        this.opponentGarbageIndicator.className = 'garbage-indicator';
+        opponentSection.appendChild(this.opponentGarbageIndicator);
+    }
+
+    showComboPopup(combo) {
+        if (combo <= 1) return;
+        
+        const popup = document.createElement('div');
+        popup.className = 'combo-popup';
+        popup.textContent = `${combo} COMBO!`;
+        
+        const playerSection = document.querySelector('.player-section:first-child');
+        popup.style.left = '50%';
+        popup.style.top = '50%';
+        playerSection.appendChild(popup);
+        
+        setTimeout(() => popup.remove(), 1000);
+    }
+
+    showTSpinPopup(lines) {
+        const popup = document.createElement('div');
+        popup.className = 'tspin-popup';
+        popup.textContent = lines > 0 ? `T-SPIN ${['SINGLE', 'DOUBLE', 'TRIPLE'][lines-1]}!` : 'T-SPIN!';
+        
+        const playerSection = document.querySelector('.player-section:first-child');
+        popup.style.left = '50%';
+        popup.style.top = '40%';
+        playerSection.appendChild(popup);
+        
+        setTimeout(() => popup.remove(), 1000);
+    }
+
+    updateGarbageIndicator(amount, isOpponent = false) {
+        const indicator = isOpponent ? this.opponentGarbageIndicator : this.garbageIndicator;
+        indicator.innerHTML = '';
+        
+        for (let i = 0; i < amount; i++) {
+            const block = document.createElement('div');
+            block.className = 'garbage-block';
+            indicator.appendChild(block);
+        }
     }
 
     setupSocketEvents() {
@@ -187,6 +262,15 @@ class GameClient {
             this.restartGame();
         });
 
+        // Add garbage receive handler
+        this.socket.on('receiveGarbage', ({ amount }) => {
+            console.log('Received garbage:', amount);
+            if (this.game) {
+                this.game.receiveGarbage(amount);
+                this.updateGarbageIndicator(this.game.garbageQueue);
+            }
+        });
+
         // Remove the gameOver socket event as we'll handle it through gameUpdate
     }
 
@@ -225,16 +309,14 @@ class GameClient {
         this.opponentGameOver = false;
         this.game = new Game();
         this.player = new Player(this.game);
+        // Re-setup callbacks after creating new game instance
+        this.setupGameCallbacks();
         this.restartButton.style.display = 'none';
 
         // Clear both canvases
         [this.ctx, this.opponentCtx].forEach(ctx => {
             ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         });
-
-        // Reset scores
-        document.getElementById('score1').textContent = '0';
-        document.getElementById('score2').textContent = '0';
 
         // Clear hold pieces
         [this.holdCtx, this.opponentHoldCtx].forEach(ctx => {
@@ -275,51 +357,55 @@ class GameClient {
         let needsNewPiece = false;
         let inputProcessed = false;
 
-        // Process movement inputs
-        if (['j', 'l'].includes(key)) {
-            this.player.move(key === 'j' ? 'left' : 'right');
+        // Process hard drop separately to ensure we see the garbage generation
+        if (key === 'c') {
+            console.log('Hard drop initiated');
+            this.player.hardDrop();
+            console.log('Hard drop completed');
+            needsNewPiece = true;
             inputProcessed = true;
-        }
-
-        // Always process rotations
-        if (['a', 's', 'q'].includes(key)) {
-            const direction = {
-                'a': 'counterclockwise',
-                's': 'clockwise',
-                'q': '180'
-            }[key];
-            this.player.rotate(direction);
-            inputProcessed = true;
-        }
-
-        // Process other inputs
-        switch(key) {
-            case 'k':
-                // Instant soft drop
-                while (!this.game.board.isCollision(
-                    this.game.currentPiece,
-                    this.game.currentPiece.move('down')
-                )) {
-                    this.game.currentPiece.position = this.game.currentPiece.move('down');
-                }
-                if (this.game.update() === 'locked') {
-                    needsNewPiece = true;
-                }
+        } else {
+            // Process movement inputs
+            if (['j', 'l'].includes(key)) {
+                this.player.move(key === 'j' ? 'left' : 'right');
                 inputProcessed = true;
-                break;
-            case 'c':
-                this.player.hardDrop();
-                needsNewPiece = true;
+            }
+
+            // Always process rotations
+            if (['a', 's', 'q'].includes(key)) {
+                const direction = {
+                    'a': 'counterclockwise',
+                    's': 'clockwise',
+                    'q': '180'
+                }[key];
+                this.player.rotate(direction);
                 inputProcessed = true;
-                break;
-            case 'd':
-                if (this.game.holdCurrentPiece()) {
-                    if (this.game.currentPiece === null) {
-                        this.socket.emit('requestPiece');
+            }
+
+            // Process other inputs
+            switch(key) {
+                case 'k':
+                    // Instant soft drop
+                    while (!this.game.board.isCollision(
+                        this.game.currentPiece,
+                        this.game.currentPiece.move('down')
+                    )) {
+                        this.game.currentPiece.position = this.game.currentPiece.move('down');
                     }
-                }
-                inputProcessed = true;
-                break;
+                    if (this.game.update() === 'locked') {
+                        needsNewPiece = true;
+                    }
+                    inputProcessed = true;
+                    break;
+                case 'd':
+                    if (this.game.holdCurrentPiece()) {
+                        if (this.game.currentPiece === null) {
+                            this.socket.emit('requestPiece');
+                        }
+                    }
+                    inputProcessed = true;
+                    break;
+            }
         }
 
         if (inputProcessed) {
@@ -335,7 +421,6 @@ class GameClient {
 
         const state = {
             board: this.game.board.grid,
-            score: this.game.score,
             level: this.game.level,
             playerId: this.playerId,
             currentPiece: {
@@ -344,19 +429,17 @@ class GameClient {
                 type: this.game.currentPiece.type
             },
             holdPiece: this.game.holdPiece,
-            isGameOver: this.game.isGameOver
+            isGameOver: this.game.isGameOver,
+            garbageQueue: this.game.garbageQueue,
+            combo: this.game.combo
         };
         this.socket.emit('gameUpdate', state);
 
         if (this.game.isGameOver && !this.gameOver) {
             this.gameOver = true;
             this.isWinner = false;
-            this.showGameEndScreens();  // Changed from showGameOver
+            this.showGameEndScreens();
         }
-        
-        // Update score based on player role
-        const scoreElement = this.playerId === 'player1' ? 'score1' : 'score2';
-        document.getElementById(scoreElement).textContent = this.game.score;
     }
 
     startGameLoop() {
@@ -412,6 +495,9 @@ class GameClient {
         if (this.gameOver) {
             this.showGameEndScreens();  // This will be the only place we call showGameEndScreens
         }
+
+        // Update garbage indicators
+        this.updateGarbageIndicator(this.game.garbageQueue);
     }
 
     renderGhostPiece() {
@@ -463,7 +549,7 @@ class GameClient {
         grid.forEach((row, y) => {
             row.forEach((value, x) => {
                 if (value) {
-                    const color = COLORS[value];
+                    const color = COLORS[value] || COLORS.garbage; // Use garbage color as fallback
                     const gradient = this.ctx.createLinearGradient(
                         x * blockSize,
                         y * blockSize,
@@ -563,7 +649,8 @@ class GameClient {
         data.board.forEach((row, y) => {
             row.forEach((value, x) => {
                 if (value) {
-                    this.opponentCtx.fillStyle = COLORS[value];
+                    const color = COLORS[value] || COLORS.garbage; // Add fallback here too
+                    this.opponentCtx.fillStyle = color;
                     this.opponentCtx.fillRect(
                         x * blockSize, 
                         y * blockSize, 
@@ -598,16 +685,17 @@ class GameClient {
             this.renderHoldPiece(data.holdPiece, this.opponentHoldCtx);
         }
 
-        // Update opponent's score
-        const scoreElement = data.playerId === 'player1' ? 'score1' : 'score2';
-        document.getElementById(scoreElement).textContent = data.score;
-
         // Show game over on opponent's board if they lost
         if (data.isGameOver) {
             // Remove the showGameEndScreens call from here since it's already called in render()
             this.opponentGameOver = true;
             this.isWinner = true;
             this.gameOver = true;
+        }
+
+        // Update opponent's garbage indicator
+        if (data.garbageQueue !== undefined) {
+            this.updateGarbageIndicator(data.garbageQueue, true);
         }
     }
 

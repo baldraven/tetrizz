@@ -5,6 +5,3 @@
 - fix rotation system and wall kicks
 
 👻  list :
-- 7 bag randomizer
-- send garbage instead of incrementing score
-- register t-spins

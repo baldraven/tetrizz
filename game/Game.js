@@ -1,12 +1,11 @@
-import { SHAPES, POINTS, LEVEL, COLORS } from './Constants.js';
+import { SHAPES, POINTS, LEVEL, COLORS, GARBAGE_RULES } from './Constants.js';
 import Board from './Board.js';
 import Piece from './Piece.js';
 
 export default class Game {
   constructor() {
     this.board = new Board();
-    this.score = 0;
-    this.level = 0;
+    this.level = 0;  // Keep level for speed
     this.isGameOver = false;
     this.pieceQueue = [];  // Initialize empty queue
     this.currentPiece = null;  // Don't generate piece immediately
@@ -16,6 +15,14 @@ export default class Game {
     this.lastMoveWasReset = false;
     this.holdPiece = null;
     this.hasHeldThisTurn = false;
+    this.garbageQueue = 0;
+    this.lastClearWasSpecial = false;
+    this.combo = -1;
+    this.onGarbageSend = null; // Callback for sending garbage
+    this.onTSpin = null;  // Add callback for T-spin events
+    this.onCombo = null;  // Add callback for combo events
+    this.debug = true; // Add debug flag
+    console.log('Game instance created with debug enabled');
   }
 
   generatePiece() {
@@ -82,27 +89,38 @@ export default class Game {
 
   lockPiece() {
     if (!this.currentPiece) return;
-    
-    this.board.placePiece(this.currentPiece);
-    const linesCleared = this.board.clearLines();
-    this.updateScore(linesCleared);
-    this.currentPiece = null;  // Set to null to trigger piece request
-    this.hasHeldThisTurn = false; // Reset hold flag when piece locks
-    
-    // Check if any blocks are in the top row
-    if (this.board.grid[0].some(cell => cell !== 0)) {
-      this.isGameOver = true;
-    }
-  }
 
-  updateScore(linesCleared) {
-    switch(linesCleared) {
-      case 1: this.score += POINTS.SINGLE; break;
-      case 2: this.score += POINTS.DOUBLE; break;
-      case 3: this.score += POINTS.TRIPLE; break;
-      case 4: this.score += POINTS.TETRIS; break;
+    console.log('🔒 Locking piece:', this.currentPiece.type);
+    
+    const isTSpin = this.checkTSpin(this.currentPiece.position);
+    console.log('Is T-spin?', isTSpin);
+    
+    // First, place the piece
+    this.board.placePiece(this.currentPiece);
+    
+    // Then process line clears
+    const linesCleared = this.board.clearLines();
+    console.log('Lines cleared:', linesCleared);
+
+    // Calculate garbage generation
+    if (linesCleared > 0 || isTSpin) {
+        const garbageAmount = this.calculateGarbage(linesCleared, isTSpin);
+        if (garbageAmount > 0 && this.onGarbageSend) {
+            this.onGarbageSend(garbageAmount);
+        }
     }
-    this.level = Math.floor(this.score / 1000);
+
+    // Process pending garbage lines immediately before resetting the piece
+    this.addGarbageLines();
+
+    // Finally, reset piece state
+    this.currentPiece = null;
+    this.hasHeldThisTurn = false;
+    
+    // Check for game over after all board updates
+    if (this.board.grid[0].some(cell => cell !== 0)) {
+        this.isGameOver = true;
+    }
   }
 
   getDropInterval() {
@@ -164,5 +182,107 @@ export default class Game {
   handleInput(key) {
     if (this.isGameOver) return false;  // Add this line at the start
     // ...existing code...
+  }
+
+  checkTSpin(position) {
+    if (this.currentPiece.type !== 'T') return false;
+
+    // Count filled corners
+    let corners = 0;
+    const { x, y } = position;
+    const cornerPositions = [
+        [x, y],       // top-left
+        [x + 2, y],   // top-right
+        [x, y + 2],   // bottom-left
+        [x + 2, y + 2] // bottom-right
+    ];
+
+    corners = cornerPositions.filter(([cx, cy]) => 
+        cy < 0 || cy >= this.board.height || 
+        cx < 0 || cx >= this.board.width ||
+        this.board.grid[cy][cx]
+    ).length;
+
+    return corners >= 3;
+  }
+
+  calculateGarbage(linesCleared, isTSpin) {
+    let garbageAmount = 0;
+
+    // Base garbage calculation
+    if (isTSpin) {
+        switch(linesCleared) {
+            case 1: garbageAmount = GARBAGE_RULES.TSPIN_SINGLE; break;
+            case 2: garbageAmount = GARBAGE_RULES.TSPIN_DOUBLE; break;
+            case 3: garbageAmount = GARBAGE_RULES.TSPIN_TRIPLE; break;
+        }
+    } else {
+        switch(linesCleared) {
+            case 1: garbageAmount = GARBAGE_RULES.SINGLE; break;
+            case 2: garbageAmount = GARBAGE_RULES.DOUBLE; break;
+            case 3: garbageAmount = GARBAGE_RULES.TRIPLE; break;
+            case 4: garbageAmount = GARBAGE_RULES.TETRIS; break;
+        }
+    }
+
+    if (this.debug) {
+        console.log('Base garbage:', garbageAmount);
+    }
+
+    // Back-to-back bonus
+    if (this.lastClearWasSpecial && (isTSpin || linesCleared === 4)) {
+        garbageAmount = Math.ceil(garbageAmount * 1.5);
+        if (this.debug) console.log('B2B bonus applied:', garbageAmount);
+    }
+
+    // Combo bonus
+    if (linesCleared > 0) {
+        this.combo++;
+        if (this.combo < GARBAGE_RULES.COMBO_TABLE.length) {
+            const comboGarbage = GARBAGE_RULES.COMBO_TABLE[this.combo];
+            if (this.debug) console.log('Combo bonus:', comboGarbage);
+            garbageAmount += comboGarbage;
+        }
+    } else {
+        this.combo = -1;
+    }
+
+    this.lastClearWasSpecial = isTSpin || linesCleared === 4;
+    return garbageAmount;
+  }
+
+  receiveGarbage(amount) {
+    console.log('📥 Receiving garbage:', amount, 'Current queue:', this.garbageQueue);
+    if (this.garbageQueue <= 0) {
+        this.garbageQueue = amount;
+    } else {
+        // Stack the garbage
+        this.garbageQueue += amount;
+    }
+    console.log('Updated garbage queue:', this.garbageQueue);
+  }
+
+  addGarbageLines() {
+    if (this.garbageQueue <= 0) return;
+
+    console.log('🔼 Adding garbage lines:', this.garbageQueue);
+    
+    // Create garbage lines with random holes
+    const linesToAdd = Math.min(this.garbageQueue, this.board.height);
+    const garbageLines = [];
+    
+    for (let i = 0; i < linesToAdd; i++) {
+        const hole = Math.floor(Math.random() * this.board.width);
+        const line = Array(this.board.width).fill('garbage');
+        line[hole] = 0;
+        garbageLines.push(line);
+    }
+
+    // Add the garbage lines to the board
+    this.board.addGarbageLines(garbageLines);
+    
+    // Reset garbage queue
+    this.garbageQueue = 0;
+    console.log('✅ Added garbage lines, queue reset');
   }
 }

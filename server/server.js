@@ -20,6 +20,9 @@ io.on('connection', socket => {
         return;
     }
 
+    // Add roomId to socket when joining
+    socket.roomId = 'default';
+
     // Check if room is full
     if (room.players.size >= 2) {
         console.log('Room is full, rejecting connection');
@@ -84,6 +87,25 @@ io.on('connection', socket => {
         const { firstPiece, queue } = room.initializeBags();
         io.emit('gameRestart');
         io.emit('startGame', { firstPiece, initialQueue: queue });
+    });
+
+    // Handle garbage sending
+    socket.on('sendGarbage', ({ amount }) => {
+        console.log(`🎮 Player ${socket.id} sending ${amount} garbage lines`);
+        
+        const room = rooms.get('default');
+        if (!room) {
+            console.error('❌ Room not found for garbage sending');
+            return;
+        }
+
+        const opponents = room.getOtherPlayers(socket.id);
+        console.log(`📨 Sending ${amount} garbage lines to opponents:`, opponents);
+        
+        opponents.forEach(opponentId => {
+            console.log(`📬 Emitting ${amount} garbage to ${opponentId}`);
+            io.to(opponentId).emit('receiveGarbage', { amount });
+        });
     });
 
     socket.on('disconnect', () => {

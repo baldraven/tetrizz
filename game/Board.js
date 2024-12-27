@@ -18,19 +18,38 @@ export default class Board {
     );
   }
 
+  addGarbageLines(garbageLines) {
+    // Remove lines from the top
+    this.grid.splice(0, garbageLines.length);
+    
+    // Add garbage lines at the bottom
+    this.grid.push(...garbageLines);
+    
+    // Verify board height is correct
+    while (this.grid.length < this.height) {
+        this.grid.unshift(Array(this.width).fill(0));
+    }
+  }
+
   clearLines() {
     let linesCleared = 0;
-    this.grid = this.grid.filter(row => {
-      if (row.every(cell => cell)) {
-        linesCleared++;
-        return false;
-      }
-      return true;
-    });
+    let newGrid = [];
     
-    while (this.grid.length < this.height) {
-      this.grid.unshift(Array(this.width).fill(0));
+    // Keep non-full lines
+    for (let y = 0; y < this.height; y++) {
+        if (!this.grid[y].every(cell => cell !== 0)) {
+            newGrid.push(this.grid[y]);
+        } else {
+            linesCleared++;
+        }
     }
+    
+    // Add new empty lines at the top
+    while (newGrid.length < this.height) {
+        newGrid.unshift(Array(this.width).fill(0));
+    }
+    
+    this.grid = newGrid;
     return linesCleared;
   }
 
