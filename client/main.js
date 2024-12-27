@@ -103,19 +103,22 @@ class GameClient {
             const leftCtx = this.leftCanvas.getContext('2d');
             const rightCtx = this.rightCanvas.getContext('2d');
             
-            // Assign contexts based on player role
+            // Always assign player's board to left and opponent to right
+            this.ctx = leftCtx;
+            this.opponentCtx = rightCtx;
+            
+            // Assign correct hold piece canvases
             if (this.playerId === 'player1') {
-                this.ctx = leftCtx;
-                this.opponentCtx = rightCtx;
                 this.holdCtx = this.holdCanvas.getContext('2d');
                 this.opponentHoldCtx = this.opponentHoldCanvas.getContext('2d');
                 document.querySelector('.player-section:first-child h2').style.color = 'red';
             } else {
-                this.ctx = rightCtx;
-                this.opponentCtx = leftCtx;
-                this.holdCtx = this.opponentHoldCanvas.getContext('2d');
-                this.opponentHoldCtx = this.holdCanvas.getContext('2d');
-                document.querySelector('.player-section:last-child h2').style.color = 'red';
+                this.holdCtx = this.holdCanvas.getContext('2d');
+                this.opponentHoldCtx = this.opponentHoldCanvas.getContext('2d');
+                // Mark player 2's name in red but on the left side
+                document.querySelector('.player-section:first-child h2').textContent = 'Player 2';
+                document.querySelector('.player-section:first-child h2').style.color = 'red';
+                document.querySelector('.player-section:last-child h2').textContent = 'Player 1';
             }
 
             // Restore game state if exists
