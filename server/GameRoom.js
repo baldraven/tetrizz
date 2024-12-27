@@ -23,8 +23,8 @@ class GameRoom {
         const firstPiece = this.currentBag.shift();
         this.currentPiece = firstPiece;  // Store current piece
         
-        // Create queue from remaining pieces
-        this.pieceQueue = [...this.currentBag, ...this.nextBag].slice(0, 6);
+        // Create queue from remaining pieces to show 7 pieces
+        this.pieceQueue = [...this.currentBag, ...this.nextBag].slice(0, 7);
         
         return { firstPiece, queue: this.pieceQueue };
     }
@@ -50,7 +50,7 @@ class GameRoom {
 
         const piece = this.currentBag.shift();
         this.currentPiece = piece;  // Update current piece
-        this.pieceQueue = [...this.currentBag, ...this.nextBag].slice(0, 6);
+        this.pieceQueue = [...this.currentBag, ...this.nextBag].slice(0, 7);
         
         console.log('Next piece:', piece);
         console.log('New queue:', this.pieceQueue);

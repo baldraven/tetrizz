@@ -23,8 +23,8 @@ class GameClient {
         this.heldKeys = new Set();
         
         this.previewCanvas = document.createElement('canvas');
-        this.previewCanvas.width = 100;
-        this.previewCanvas.height = 400;
+        this.previewCanvas.width = 80;  // Reduced from 100
+        this.previewCanvas.height = 350; // Reduced from 400
         this.previewCanvas.classList.add('preview-queue');
         
         // Find the preview section and append the canvas to it
@@ -612,9 +612,9 @@ class GameClient {
     }
 
     renderPreviewQueue() {
-        const blockSize = 20;
-        const padding = 10;
-        const pieceSpacing = 70; // Increased spacing between pieces
+        const blockSize = 15;  // Reduced from 20
+        const padding = 8;     // Reduced from 10
+        const pieceSpacing = 45; // Reduced from 70
         this.previewCtx.clearRect(0, 0, this.previewCanvas.width, this.previewCanvas.height);
         
         this.game.pieceQueue.forEach((type, index) => {

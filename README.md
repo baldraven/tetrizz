@@ -8,4 +8,3 @@
 - 7 bag randomizer
 - send garbage instead of incrementing score
 - register t-spins
-- display player board always on the left
