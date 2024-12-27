@@ -70,11 +70,12 @@ class GameClient {
         });
 
         // Control timing constants
-        this.DAS = 100;  // Delayed Auto Shift: 100ms
-        this.ARR = 0;    // Auto-Repeat Rate: 0ms (instant)
-        this.DCD = 5;    // DAS Cut Delay: 5ms
-        this.lastMoveTime = 0;
-        this.dasTimer = 0;
+        this.DAS = 100;    // Delayed Auto Shift: 100ms
+        this.ARR = 0;      // Auto-Repeat Rate: 0ms (instant movement)
+        this.DCD = 50;     // DAS Cut Delay: 50ms
+        this.lastMoveTime = {};  // Track last move time per key
+        this.dasTimer = {};     // Track DAS timer per key
+        this.dasActive = {};    // Track if DAS is active for each key
         this.gameOver = false;
         this.isWinner = false;  // Add this line
         this.opponentGameOver = false;  // Add this line
@@ -248,14 +249,22 @@ class GameClient {
         document.addEventListener('keydown', (event) => {
             if (!this.gameStarted) return;
             
-            // Always process new key even if already held
-            this.handleInput(event.key);
-            // Then add to held keys set
-            this.heldKeys.add(event.key);
+            const key = event.key;
+            if (!this.heldKeys.has(key)) {
+                this.heldKeys.add(key);
+                this.dasTimer[key] = 0;
+                this.dasActive[key] = false;
+                this.lastMoveTime[key] = performance.now();
+                this.handleInput(key); // Initial press
+            }
         });
 
         document.addEventListener('keyup', (event) => {
-            this.heldKeys.delete(event.key);
+            const key = event.key;
+            this.heldKeys.delete(key);
+            delete this.dasTimer[key];
+            delete this.dasActive[key];
+            delete this.lastMoveTime[key];
         });
     }
 
@@ -263,20 +272,16 @@ class GameClient {
         if (this.gameOver) return;
         if (!this.game.currentPiece || !this.gameStarted) return;
         
-        const now = performance.now();
         let needsNewPiece = false;
         let inputProcessed = false;
 
         // Process movement inputs
         if (['j', 'l'].includes(key)) {
-            if (now - this.lastMoveTime >= this.DCD) {
-                this.player.move(key === 'j' ? 'left' : 'right');
-                this.lastMoveTime = now;
-                inputProcessed = true;
-            }
+            this.player.move(key === 'j' ? 'left' : 'right');
+            inputProcessed = true;
         }
 
-        // Process rotation inputs (always process regardless of timing)
+        // Always process rotations
         if (['a', 's', 'q'].includes(key)) {
             const direction = {
                 'a': 'counterclockwise',
@@ -361,19 +366,21 @@ class GameClient {
             this.lastTime = timestamp;
 
             // Handle held keys with DAS
-            if (this.heldKeys.size > 0) {
-                this.dasTimer += deltaTime;
-                
-                if (this.dasTimer >= this.DAS) {
-                    this.heldKeys.forEach(key => {
-                        if (['j', 'l'].includes(key)) {
-                            this.handleInput(key);
+            this.heldKeys.forEach(key => {
+                if (['j', 'l'].includes(key)) {
+                    this.dasTimer[key] += deltaTime;
+
+                    if (!this.dasActive[key] && this.dasTimer[key] >= this.DAS) {
+                        this.dasActive[key] = true;
+                        // When DAS triggers, move piece as far as possible in that direction
+                        const direction = key === 'j' ? 'left' : 'right';
+                        while (this.game.tryMove(this.game.currentPiece.move(direction))) {
+                            this.game.currentPiece.position = this.game.currentPiece.move(direction);
                         }
-                    });
+                        this.sendGameState();
+                    }
                 }
-            } else {
-                this.dasTimer = 0;
-            }
+            });
 
             // Handle piece dropping
             this.dropCounter += deltaTime;
