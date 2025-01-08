@@ -64,6 +64,7 @@ io.on('connection', socket => {
         if (data.isGameOver) {
             const winner = otherPlayers[0]; // The other player won
             io.emit('gameOver', { winner });
+            return; // Stop further processing
         }
         
         otherPlayers.forEach(playerId => {

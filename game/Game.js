@@ -90,37 +90,33 @@ export default class Game {
   lockPiece() {
     if (!this.currentPiece) return;
 
-    console.log('🔒 Locking piece:', this.currentPiece.type);
-    
-    const isTSpin = this.checkTSpin(this.currentPiece.position);
-    console.log('Is T-spin?', isTSpin);
-    
-    // First, place the piece
+    // Place the piece
     this.board.placePiece(this.currentPiece);
-    
-    // Then process line clears
-    const linesCleared = this.board.clearLines();
-    console.log('Lines cleared:', linesCleared);
 
-    // Calculate garbage generation
-    if (linesCleared > 0 || isTSpin) {
-        const garbageAmount = this.calculateGarbage(linesCleared, isTSpin);
-        if (garbageAmount > 0 && this.onGarbageSend) {
-            this.onGarbageSend(garbageAmount);
-        }
-    }
-
-    // Process pending garbage lines immediately before resetting the piece
-    this.addGarbageLines();
-
-    // Finally, reset piece state
-    this.currentPiece = null;
-    this.hasHeldThisTurn = false;
-    
-    // Check for game over after all board updates
+    // Check for game over immediately after placing piece
     if (this.board.grid[0].some(cell => cell !== 0)) {
         this.isGameOver = true;
+        this.currentPiece = null;
+        return;
     }
+
+    // Process rest of lock piece logic only if not game over
+    if (!this.isGameOver) {
+        const isTSpin = this.checkTSpin(this.currentPiece.position);
+        const linesCleared = this.board.clearLines();
+        
+        if (linesCleared > 0 || isTSpin) {
+            const garbageAmount = this.calculateGarbage(linesCleared, isTSpin);
+            if (garbageAmount > 0 && this.onGarbageSend) {
+                this.onGarbageSend(garbageAmount);
+            }
+        }
+
+        this.addGarbageLines();
+    }
+
+    this.currentPiece = null;
+    this.hasHeldThisTurn = false;
   }
 
   getDropInterval() {

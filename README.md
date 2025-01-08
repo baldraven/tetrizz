@@ -4,6 +4,10 @@
 - funky gamespeed and synchronization when tabbed out
 - fix rotation system and wall kicks
 
+todo list:
+- tests
+- check for dead code that could be left after all the iterations 
+
 ## How to use
 ```
 npm install

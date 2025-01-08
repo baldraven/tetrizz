@@ -16,6 +16,7 @@
         <div class="middle-section">
             <div class="preview-section">
                 <div class="preview-label">Next</div>
+                <canvas class="preview-queue" width="80" height="350"></canvas>  <!-- Add this line -->
             </div>
             <div class="controls">
                 <ul>
@@ -30,11 +31,15 @@
             <div class="hold-container">
                 <div class="hold-wrapper">
                     <div class="hold-label">P1 Hold</div>
-                    <div class="hold-section player1-hold"></div>
+                    <div class="hold-section player1-hold">
+                        <canvas class="hold-piece" width="80" height="80"></canvas>  <!-- Add this line -->
+                    </div>
                 </div>
                 <div class="hold-wrapper">
                     <div class="hold-label">P2 Hold</div>
-                    <div class="hold-section player2-hold"></div>
+                    <div class="hold-section player2-hold">
+                        <canvas class="hold-piece" width="80" height="80"></canvas>  <!-- Add this line -->
+                    </div>
                 </div>
             </div>
         </div>
