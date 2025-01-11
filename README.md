@@ -3,6 +3,7 @@
 🪳 list :
 - funky gamespeed and synchronization when tabbed out
 - fix rotation system and wall kicks
+- rotation should not reset DAS
 
 todo list:
 - tests
