@@ -4,9 +4,9 @@ export default class PreviewRenderer {
     constructor(canvas) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
-        this.blockSize = 15;
-        this.padding = 8;
-        this.pieceSpacing = 45;
+        this.blockSize = 20;  // Increased from 15
+        this.padding = 15;    // Increased from 8
+        this.pieceSpacing = 60;  // Increased from 45
     }
 
     render(pieceQueue) {

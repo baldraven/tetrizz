@@ -6,16 +6,21 @@ export default class Board {
   }
 
   isCollision(piece, position) {
-    return piece.shape.some((row, dy) => 
-      row.some((value, dx) => {
+    if (!piece || !piece.shape || !Array.isArray(piece.shape)) {
+      return true; // Treat invalid pieces as collisions
+    }
+
+    return piece.shape.some((row, dy) => {
+      if (!Array.isArray(row)) return true; // Treat invalid rows as collisions
+      return row.some((value, dx) => {
         if (!value) return false;
         const newX = position.x + dx;
         const newY = position.y + dy;
         return newX < 0 || newX >= this.width ||
                newY >= this.height ||
-               this.grid[newY][newX];
-      })
-    );
+               this.grid[newY]?.[newX];
+      });
+    });
   }
 
   addGarbageLines(garbageLines) {

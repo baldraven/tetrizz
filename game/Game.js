@@ -126,11 +126,14 @@ export default class Game {
   }
 
   getGhostPiecePosition() {
-    let ghostPiece = {
-      shape: this.currentPiece.shape,
-      position: { ...this.currentPiece.position }
-    };
+    if (!this.currentPiece) return null;
+    
+    // Create a proper ghost piece with the same structure as currentPiece
+    let ghostPiece = new Piece(this.currentPiece.shape, this.currentPiece.type);
+    ghostPiece.position = { ...this.currentPiece.position };
+    ghostPiece.rotationState = this.currentPiece.rotationState;
 
+    // Drop the ghost piece as far as it can go
     while (!this.board.isCollision(ghostPiece, {
       x: ghostPiece.position.x,
       y: ghostPiece.position.y + 1
@@ -280,5 +283,50 @@ export default class Game {
     // Reset garbage queue
     this.garbageQueue = 0;
     console.log('✅ Added garbage lines, queue reset');
+  }
+
+  rotate(direction = 'clockwise') {
+    if (!this.currentPiece) return false;
+    
+    // Special handling for O piece - no rotation needed
+    if (this.currentPiece.type === 'O') return true;
+    
+    const rotationResult = this.currentPiece.rotate(direction);
+    const basePos = this.currentPiece.position;
+    
+    // Try all possible kick positions
+    for (const kick of [{ x: 0, y: 0 }, ...rotationResult.kicks]) {
+      const newPos = {
+        x: basePos.x + kick.x,
+        y: basePos.y + kick.y
+      };
+      
+      // Create a test piece with the proper shape array
+      const testPiece = {
+        shape: rotationResult.shape,
+        position: newPos,
+        type: this.currentPiece.type
+      };
+      
+      if (!this.board.isCollision(testPiece, newPos)) {
+        this.currentPiece.shape = rotationResult.shape;
+        this.currentPiece.position = newPos;
+        this.currentPiece.rotationState = rotationResult.newState;
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
+  // Update tryMove to use rotate method
+  tryMove(position) {
+    if (!this.currentPiece) return false;
+    
+    if (!this.board.isCollision(this.currentPiece, position)) {
+      this.currentPiece.position = position;
+      return true;
+    }
+    return false;
   }
 }

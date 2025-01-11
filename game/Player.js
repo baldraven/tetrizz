@@ -11,17 +11,8 @@ export default class Player {
   }
 
   rotate(direction = 'clockwise') {
-    const rotated = this.game.currentPiece.rotate(direction);
-    const currentPosition = this.game.currentPiece.position;
-    // Create a test piece with the same format as the current piece
-    const testPiece = {
-      shape: rotated,
-      position: currentPosition
-    };
-    
-    if (this.game.tryMove(currentPosition)) {
-      this.game.currentPiece.shape = rotated;
-    }
+    if (!this.game.currentPiece) return;
+    this.game.rotate(direction);
   }
 
   hardDrop() {
